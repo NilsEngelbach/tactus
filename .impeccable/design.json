@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-17T16:24:17.223Z",
+  "title": "Design System: Tactus",
+  "extensions": {
+    "colorMeta": {
+      "enamel-tempo": {
+        "role": "primary",
+        "displayName": "Vermilion Enamel",
+        "canonical": "oklch(53.0% 0.165 31.1)",
+        "tonalRamp": [
+          "#250000",
+          "#4f0000",
+          "#810000",
+          "#a72817",
+          "#cd4e3a",
+          "#f3715b",
+          "#ffa694",
+          "#ffe2d9"
+        ]
+      },
+      "enamel-tuner": {
+        "role": "primary",
+        "displayName": "Bottle Green Enamel",
+        "canonical": "oklch(48.8% 0.072 170.5)",
+        "tonalRamp": [
+          "#001307",
+          "#002e1f",
+          "#034c3a",
+          "#2c6b58",
+          "#4e8b77",
+          "#6fad98",
+          "#95d4bd",
+          "#bfffe8"
+        ]
+      },
+      "enamel-mustard": {
+        "role": "secondary",
+        "displayName": "Mustard Enamel (reserved)",
+        "canonical": "oklch(78.9% 0.141 86.3)",
+        "tonalRamp": [
+          "#220000",
+          "#401700",
+          "#603500",
+          "#805500",
+          "#a27500",
+          "#c5970b",
+          "#ecbd48",
+          "#ffe98d"
+        ]
+      },
+      "led-red": {
+        "role": "tertiary",
+        "displayName": "Status Red LED",
+        "canonical": "oklch(65.6% 0.231 29.3)",
+        "tonalRamp": [
+          "#250000",
+          "#500000",
+          "#820000",
+          "#b20200",
+          "#e71b12",
+          "#ff6251",
+          "#ffa696",
+          "#ffe2da"
+        ]
+      },
+      "led-amber": {
+        "role": "tertiary",
+        "displayName": "Beat Amber LED",
+        "canonical": "oklch(80.8% 0.165 73.5)",
+        "tonalRamp": [
+          "#250000",
+          "#4e0000",
+          "#702600",
+          "#924700",
+          "#b66900",
+          "#da8b00",
+          "#ffb127",
+          "#ffe6ae"
+        ]
+      },
+      "led-green": {
+        "role": "tertiary",
+        "displayName": "In-Tune Green LED",
+        "canonical": "oklch(84.5% 0.197 153.9)",
+        "tonalRamp": [
+          "#001500",
+          "#003201",
+          "#005316",
+          "#00762b",
+          "#009c40",
+          "#00c061",
+          "#2de886",
+          "#acffc9"
+        ]
+      },
+      "board": {
+        "role": "neutral",
+        "displayName": "Board Black",
+        "canonical": "oklch(19.2% 0.004 286.0)",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#242426",
+          "#3f3f42",
+          "#5d5d60",
+          "#7d7d7f",
+          "#9e9ea1",
+          "#c4c4c7",
+          "#eeeef1"
+        ]
+      },
+      "board-rail": {
+        "role": "neutral",
+        "displayName": "Rail Charcoal",
+        "canonical": "oklch(22.8% 0.008 285.8)",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#242428",
+          "#3f3f44",
+          "#5d5d62",
+          "#7d7d82",
+          "#9e9ea3",
+          "#c3c3c9",
+          "#eeeef4"
+        ]
+      },
+      "glass": {
+        "role": "neutral",
+        "displayName": "Black Glass",
+        "canonical": "oklch(14.8% 0.003 145.4)",
+        "tonalRamp": [
+          "#0a0b0a",
+          "#232423",
+          "#3f403f",
+          "#5d5e5d",
+          "#7c7e7c",
+          "#9d9f9d",
+          "#c3c4c3",
+          "#edefed"
+        ]
+      },
+      "cream": {
+        "role": "neutral",
+        "displayName": "Silkscreen Cream",
+        "canonical": "oklch(93.9% 0.026 84.6)",
+        "tonalRamp": [
+          "#100a01",
+          "#2a2315",
+          "#463f30",
+          "#645d4d",
+          "#847c6c",
+          "#a69d8d",
+          "#ccc3b2",
+          "#f7eedb"
+        ]
+      },
+      "readout": {
+        "role": "neutral",
+        "displayName": "Readout White",
+        "canonical": "oklch(95.7% 0.021 85.9)",
+        "tonalRamp": [
+          "#0f0a03",
+          "#292318",
+          "#453f33",
+          "#635d50",
+          "#837d6f",
+          "#a49e90",
+          "#cac3b5",
+          "#f5eedf"
+        ]
+      },
+      "chrome-mid": {
+        "role": "neutral",
+        "displayName": "Chrome",
+        "canonical": "oklch(73.4% 0.007 255.5)",
+        "tonalRamp": [
+          "#090b0e",
+          "#222427",
+          "#3d4043",
+          "#5b5e61",
+          "#7b7d81",
+          "#9c9fa3",
+          "#c1c4c8",
+          "#ebeff3"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Pedal name in the enclosure head."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "TACTUS in the header only."
+      },
+      "reading": {
+        "displayName": "Reading",
+        "purpose": "The main value in the glass (BPM, note); up to 34u for the tuner note."
+      },
+      "readout-small": {
+        "displayName": "Readout Small",
+        "purpose": "Secondary readings in the glass: tempo name, meter, cents, Hz, reference."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Window messages, max 36ch, balanced."
+      },
+      "label": {
+        "displayName": "Silkscreen",
+        "purpose": "All uppercase printing on enamel: knob and switch labels, model number, tabs, plates."
+      },
+      "scale-mark": {
+        "displayName": "Scale Mark",
+        "purpose": "Numbers and glyphs printed around knobs."
+      }
+    },
+    "shadows": [
+      {
+        "name": "enclosure",
+        "value": "inset 0 2px 0 rgba(255,255,255,0.28), inset 0 7px 6px -4px rgba(255,255,255,0.12), inset 0 -3px 0 rgba(0,0,0,0.28), inset 0 -10px 10px -6px rgba(0,0,0,0.35), inset 3px 0 4px rgba(255,255,255,0.06), 0 10px 18px rgba(0,0,0,0.55), 0 2px 3px rgba(0,0,0,0.6)",
+        "purpose": "Every pedal enclosure: top bevel, bottom bevel, cast shadow."
+      },
+      {
+        "name": "recessed-glass",
+        "value": "inset 0 3px 8px rgba(0,0,0,0.95), inset 0 0 0 1px rgba(0,0,0,0.9), 0 0 0 calc(1.1 * var(--u)) color-mix(in oklab, var(--enamel) 62%, #000), 0 calc(0.4 * var(--u)) 0 calc(1.1 * var(--u)) rgba(255,255,255,0.12)",
+        "purpose": "Display windows: recessed glass inside an enamel-dark bezel."
+      },
+      {
+        "name": "knob-cast",
+        "value": "0 calc(1 * var(--u)) calc(1.8 * var(--u)) rgba(0,0,0,0.5), 0 2px 2px rgba(0,0,0,0.45)",
+        "purpose": "Knurled knobs on enamel."
+      },
+      {
+        "name": "tab-raised",
+        "value": "inset 0 1px 0 rgba(255,255,255,0.24), inset 0 -2px 3px rgba(0,0,0,0.3), 0 3px 5px rgba(0,0,0,0.6)",
+        "purpose": "Current phone tab, lifted 2px."
+      },
+      {
+        "name": "tab-pressed",
+        "value": "inset 0 2px 4px rgba(0,0,0,0.5), inset 0 -1px 0 rgba(255,255,255,0.08), 0 1px 0 rgba(255,255,255,0.05)",
+        "purpose": "Other phone tab, pressed into the header."
+      },
+      {
+        "name": "led-glow",
+        "value": "0 0 calc(var(--s) * 0.9) calc(var(--s) * 0.12) color-mix(in oklab, var(--c) 70%, transparent)",
+        "purpose": "Lit LEDs only."
+      },
+      {
+        "name": "plate",
+        "value": "inset 0 1px 0 rgba(255,255,255,0.28), inset 0 0 0 1px rgba(0,0,0,0.6), 0 2px 4px rgba(0,0,0,0.5)",
+        "purpose": "Chrome name plates in the header."
+      }
+    ],
+    "motion": [
+      {
+        "name": "footswitch-press",
+        "value": "translate 70ms ease-out",
+        "purpose": "Dome drops 2px on press; the switch acts on pointerdown."
+      },
+      {
+        "name": "tab-lift",
+        "value": "140ms ease-out",
+        "purpose": "Tab raise and press: transform, background and shadow."
+      },
+      {
+        "name": "bat-toggle",
+        "value": "rotate 110ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Language bat handle flipping between -38deg and 38deg."
+      },
+      {
+        "name": "led-flash",
+        "value": "190ms ease-out (subdivision 140ms, dim 160ms)",
+        "purpose": "Beat LED flash, triggered from audio-clock timestamps."
+      },
+      {
+        "name": "meter-segment",
+        "value": "70ms linear",
+        "purpose": "Tuner LED bar; arrows 90ms linear; note opacity 200ms ease-out."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "transition: none",
+        "purpose": "Tabs, toggle, footswitch, tuner note, segments and arrows drop transitions under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "board",
+        "value": "880px",
+        "purpose": "Below: two-row header, tabs, horizontal scroll-snap rack, jacks hidden. At and above: both pedals side by side, cabled jack to jack."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Pedal Enclosure",
+      "kind": "card",
+      "refersTo": "pedal-tempo",
+      "description": "The enamel stompbox every tool is built in: silkscreen head, black glass window, deck, switch row.",
+      "html": "<section class=\"ds-pedal\"><header class=\"ds-pedal-head\"><h2 class=\"ds-pedal-name\">Tempo</h2><span class=\"ds-silk\">Tactus TM-1</span></header><div class=\"ds-window\"><span class=\"ds-reading\">96</span></div></section>",
+      "css": ".ds-pedal{width:300px;padding:18px;border-radius:18px;background:radial-gradient(120% 70% at 30% 0%,rgba(255,255,255,.1),transparent 60%),var(--enamel-tempo, #b83a28);box-shadow:inset 0 2px 0 rgba(255,255,255,.28),inset 0 7px 6px -4px rgba(255,255,255,.12),inset 0 -3px 0 rgba(0,0,0,.28),inset 0 -10px 10px -6px rgba(0,0,0,.35),0 10px 18px rgba(0,0,0,.55),0 2px 3px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:14px;}.ds-pedal-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}.ds-pedal-name{margin:0;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-stretch:125%;font-weight:900;font-size:26px;line-height:1;letter-spacing:.04em;text-transform:uppercase;color:var(--cream, #f3ead8);}.ds-silk{font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-stretch:125%;font-weight:750;text-transform:uppercase;letter-spacing:.1em;font-size:11px;line-height:1.1;color:var(--cream, #f3ead8);font-size:10px;}.ds-window{display:grid;place-items:center;min-height:140px;border-radius:9px;background:var(--glass, #0a0b0a);box-shadow:inset 0 3px 8px rgba(0,0,0,.95),inset 0 0 0 1px rgba(0,0,0,.9),0 0 0 4px color-mix(in oklab,var(--enamel-tempo, #b83a28) 62%,#000);}.ds-reading{font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-stretch:62%;font-weight:620;font-size:110px;line-height:.8;font-variant-numeric:tabular-nums lining-nums;color:var(--readout, #f7f0e1);}"
+    },
+    {
+      "name": "Display Window Readout",
+      "kind": "input",
+      "refersTo": "display-window",
+      "description": "Black glass with a condensed reading; tap a reading to type a value (amber underline and caret).",
+      "html": "<div class=\"ds-glass\"><div class=\"ds-glass-top\"><span class=\"ds-small\">Andante</span><span class=\"ds-small\">4/4</span></div><button class=\"ds-readout-btn\" type=\"button\"><span class=\"ds-big\">96</span></button><input class=\"ds-big ds-entry\" value=\"120\" aria-label=\"Tempo\" inputmode=\"numeric\"></div>",
+      "css": ".ds-glass{position:relative;display:flex;flex-direction:column;align-items:center;gap:10px;width:300px;padding:14px 16px;border-radius:10px;background:var(--glass, #0a0b0a);color:var(--readout, #f7f0e1);overflow:hidden;box-shadow:inset 0 3px 8px rgba(0,0,0,.95),inset 0 0 0 1px rgba(0,0,0,.9);}.ds-glass::before{content:'';position:absolute;inset:0;background:linear-gradient(165deg,rgba(255,255,255,.075),rgba(255,255,255,.015) 34%,transparent 35%);pointer-events:none;}.ds-glass-top{align-self:stretch;display:flex;justify-content:space-between;}.ds-small{font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-stretch:80%;font-weight:600;font-size:15px;letter-spacing:.03em;font-variant-numeric:tabular-nums;}.ds-big{font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-stretch:62%;font-weight:620;font-size:80px;line-height:.8;font-variant-numeric:tabular-nums lining-nums;color:var(--readout, #f7f0e1);}.ds-readout-btn{padding:0;border:0;background:none;cursor:text;border-radius:4px;}.ds-readout-btn:hover .ds-big{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:.12em;text-decoration-color:var(--readout-dim, rgba(247,240,225,.56));}.ds-readout-btn:focus-visible{outline:2px solid var(--cream, #f3ead8);outline-offset:3px;}.ds-entry{width:3.2ch;padding:0;border:0;border-bottom:3px solid var(--led-amber, #ffad1f);border-radius:0;background:transparent;text-align:center;caret-color:var(--led-amber, #ffad1f);outline:none;}"
+    },
+    {
+      "name": "Footswitch",
+      "kind": "button",
+      "refersTo": "footswitch",
+      "description": "Chrome stomp switch with hex nut and a status LED; acts on press, the dome drops 2px.",
+      "html": "<div class=\"ds-fs-zone\"><span class=\"ds-fs-led\" aria-hidden=\"true\"></span><button class=\"ds-fs\" type=\"button\" aria-pressed=\"true\" aria-label=\"On\"><svg class=\"ds-fs-art\" viewBox=\"0 0 100 100\" aria-hidden=\"true\"><defs><linearGradient id=\"ds-nut\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#fbfbfc\"/><stop offset=\".36\" stop-color=\"#c7cacd\"/><stop offset=\".37\" stop-color=\"#585c61\"/><stop offset=\".62\" stop-color=\"#8d9196\"/><stop offset=\".86\" stop-color=\"#d9dcdf\"/><stop offset=\"1\" stop-color=\"#7a7e83\"/></linearGradient><linearGradient id=\"ds-ring\" x1=\"0\" y1=\"1\" x2=\"0\" y2=\"0\"><stop offset=\"0\" stop-color=\"#f4f5f6\"/><stop offset=\".4\" stop-color=\"#b3b7bb\"/><stop offset=\".41\" stop-color=\"#4e5257\"/><stop offset=\"1\" stop-color=\"#9ea2a7\"/></linearGradient><linearGradient id=\"ds-dome\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\"><stop offset=\"0\" stop-color=\"#ffffff\"/><stop offset=\".40\" stop-color=\"#d8dbde\"/><stop offset=\".44\" stop-color=\"#3f4348\"/><stop offset=\".66\" stop-color=\"#6f7479\"/><stop offset=\".9\" stop-color=\"#cfd3d6\"/><stop offset=\"1\" stop-color=\"#8a8e93\"/></linearGradient><radialGradient id=\"ds-spec\" cx=\".5\" cy=\".5\" r=\".5\"><stop offset=\"0\" stop-color=\"#fff\"/><stop offset=\".55\" stop-color=\"#fff\" stop-opacity=\".85\"/><stop offset=\"1\" stop-color=\"#fff\" stop-opacity=\"0\"/></radialGradient></defs><polygon points=\"26,6 74,6 99,50 74,94 26,94 1,50\" fill=\"url(#ds-nut)\" stroke=\"#2b2e31\" stroke-width=\"1.2\"/><circle cx=\"50\" cy=\"50\" r=\"35\" fill=\"url(#ds-ring)\" stroke=\"#2b2e31\"/><g class=\"ds-fs-cap\"><circle cx=\"50\" cy=\"53\" r=\"27\" fill=\"#000\" opacity=\".45\"/><circle cx=\"50\" cy=\"50\" r=\"27\" fill=\"url(#ds-dome)\" stroke=\"#25282b\" stroke-width=\"1.2\"/><ellipse cx=\"40\" cy=\"34\" rx=\"7.5\" ry=\"4.2\" fill=\"url(#ds-spec)\" transform=\"rotate(-24 40 34)\"/></g></svg></button><span class=\"ds-fs-label\">On</span></div>",
+      "css": ".ds-fs-zone{display:inline-flex;flex-direction:column;align-items:center;gap:10px;padding:16px 28px;background:var(--enamel-tempo, #b83a28);border-radius:12px;}.ds-fs{position:relative;width:64px;height:64px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;}.ds-fs:focus-visible{outline:2px solid var(--cream, #f3ead8);outline-offset:8px;}.ds-fs-art{position:absolute;inset:-10%;width:120%;height:120%;overflow:visible;filter:drop-shadow(0 3px 3px rgba(0,0,0,.45));}.ds-fs:hover .ds-fs-art{filter:drop-shadow(0 3px 3px rgba(0,0,0,.45)) brightness(1.06);}.ds-fs-cap{transition:translate 70ms ease-out;}.ds-fs:active .ds-fs-cap{translate:0 2px;}.ds-fs-led{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 40% 34%,#fff 0 9%,var(--led-red, #ff3d2e) 46%,color-mix(in oklab,var(--led-red, #ff3d2e) 72%,#000));box-shadow:0 0 0 2px #0e0e0f,0 0 0 4px #9fa3a8,0 -1px 0 4px #eef0f1,0 1px 0 4px #4b4f54,0 0 11px 1px color-mix(in oklab,var(--led-red, #ff3d2e) 70%,transparent);}.ds-fs-label{font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-stretch:125%;font-weight:750;text-transform:uppercase;letter-spacing:.1em;font-size:11px;line-height:1.1;color:var(--cream, #f3ead8);}"
+    },
+    {
+      "name": "Knurled Knob",
+      "kind": "custom",
+      "refersTo": "knob-knurled-big",
+      "description": "Continuous rotary control: ridged skirt, smooth top, cream pointer.",
+      "html": "<div class=\"ds-knob\"><div class=\"ds-knob-dial\" role=\"slider\" tabindex=\"0\" aria-label=\"Tempo\" aria-valuenow=\"96\" aria-valuemin=\"30\" aria-valuemax=\"300\"><div class=\"ds-knob-cap\"><span class=\"ds-knob-ptr\"></span></div><span class=\"ds-knob-shine\"></span></div><span class=\"ds-knob-label\">Tempo</span></div>",
+      "css": ".ds-knob{display:inline-flex;flex-direction:column;align-items:center;gap:10px;padding:20px 28px;background:var(--enamel-tempo, #b83a28);border-radius:12px;}.ds-knob-dial{position:relative;width:96px;height:96px;border-radius:50%;cursor:grab;box-shadow:0 4px 7px rgba(0,0,0,.5),0 2px 2px rgba(0,0,0,.45);}.ds-knob-dial:focus-visible{outline:2px solid var(--cream, #f3ead8);outline-offset:5px;}.ds-knob-cap{position:absolute;inset:0;border-radius:50%;rotate:-70deg;background:repeating-conic-gradient(#2d2d30 0 3.6deg,#0f0f10 3.6deg 7.2deg);transition:rotate 160ms ease-out;}.ds-knob-dial:hover .ds-knob-cap{rotate:-60deg;}.ds-knob-cap::before{content:'';position:absolute;inset:13%;border-radius:50%;background:radial-gradient(circle,#232325,#19191b 70%,#111112);box-shadow:0 0 0 1px rgba(0,0,0,.8),inset 0 1px 1px rgba(255,255,255,.08);}.ds-knob-ptr{position:absolute;left:50%;top:4%;width:5%;height:38%;translate:-50% 0;border-radius:2px;background:var(--cream, #f3ead8);}.ds-knob-shine{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 36% 28%,rgba(255,255,255,.2),transparent 46%);pointer-events:none;}.ds-knob-label{font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-stretch:125%;font-weight:750;text-transform:uppercase;letter-spacing:.1em;font-size:11px;line-height:1.1;color:var(--cream, #f3ead8);}"
+    },
+    {
+      "name": "LED Set",
+      "kind": "custom",
+      "refersTo": "led",
+      "description": "Lens LEDs: red status and accent, amber beat and off-pitch, green in tune only; off is a dark lens.",
+      "html": "<div class=\"ds-leds\"><span class=\"ds-led ds-led--red ds-on\"></span><span class=\"ds-led ds-on\"></span><span class=\"ds-led\"></span><span class=\"ds-led ds-led--green ds-on\"></span></div>",
+      "css": ".ds-leds{display:inline-flex;gap:18px;padding:16px 20px;background:var(--glass, #0a0b0a);border-radius:8px;}.ds-led{--c:var(--led-amber, #ffad1f);position:relative;width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 40% 34%,color-mix(in oklab,var(--c) 34%,#000),color-mix(in oklab,var(--c) 12%,#000) 75%);box-shadow:inset 0 1px 2px rgba(0,0,0,.7),0 0 0 2px #121212,0 1px 0 2px rgba(255,255,255,.14);}.ds-led--red{--c:var(--led-red, #ff3d2e);}.ds-led--green{--c:var(--led-green, #3cf08e);}.ds-led::after{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 40% 34%,#fff 0 9%,var(--c) 46%,color-mix(in oklab,var(--c) 72%,#000));box-shadow:0 0 14px 2px color-mix(in oklab,var(--c) 70%,transparent);opacity:0;transition:opacity 190ms ease-out;}.ds-led.ds-on::after{opacity:1;}.ds-leds:hover .ds-led:not(.ds-on)::after{opacity:.22;}"
+    },
+    {
+      "name": "Pedal Tabs",
+      "kind": "nav",
+      "refersTo": "tab-tempo",
+      "description": "Phone-only mini-pedal tabs: current is raised 2px with a cream rule, the other pressed in.",
+      "html": "<nav class=\"ds-tabs\"><button class=\"ds-tab ds-tab--tempo\" aria-current=\"true\"><span class=\"ds-tab-led\"></span>Tempo</button><button class=\"ds-tab ds-tab--tuner\"><span class=\"ds-tab-led\"></span>Tuner</button></nav>",
+      "css": ".ds-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:340px;padding:10px;background:#101012;}.ds-tab{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:0 12px 0 10px;border:0;border-radius:7px;font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-stretch:125%;font-weight:750;text-transform:uppercase;letter-spacing:.1em;font-size:11px;line-height:1.1;color:var(--cream, #f3ead8);font-size:10px;cursor:pointer;box-shadow:inset 0 2px 4px rgba(0,0,0,.5),inset 0 -1px 0 rgba(255,255,255,.08),0 1px 0 rgba(255,255,255,.05);transition:transform 140ms ease-out,box-shadow 140ms ease-out;}.ds-tab--tempo{background:var(--enamel-tempo, #b83a28);}.ds-tab--tuner{background:var(--enamel-tuner, #2f6d5a);}.ds-tab[aria-current='true']{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),inset 0 -2px 3px rgba(0,0,0,.3),0 3px 5px rgba(0,0,0,.6);}.ds-tab[aria-current='true']::after{content:'';position:absolute;left:50%;bottom:5px;width:22px;height:2px;translate:-50% 0;border-radius:1px;background:var(--cream, #f3ead8);}.ds-tab:hover{filter:brightness(1.06);}.ds-tab:focus-visible{outline:2px solid var(--cream, #f3ead8);outline-offset:3px;}.ds-tab-led{width:7px;height:7px;border-radius:50%;background:#2a0806;box-shadow:0 0 0 2px #121212;}"
+    },
+    {
+      "name": "Chrome Name Plate",
+      "kind": "button",
+      "refersTo": "plate",
+      "description": "Header plates for install and update; the update plate is amber.",
+      "html": "<div class=\"ds-plates\"><button class=\"ds-plate\" type=\"button\">Install</button><button class=\"ds-plate ds-plate--update\" type=\"button\">Update</button></div>",
+      "css": ".ds-plates{display:inline-flex;gap:10px;padding:12px;background:#101012;}.ds-plate{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 11px;border:0;border-radius:6px;background:linear-gradient(#55595e 0,#3a3d41 46%,#2a2c2f 47%,#33363a 100%);color:var(--cream, #f3ead8);font-family:'Archivo Variable','Archivo',system-ui,sans-serif;font-stretch:125%;font-weight:800;font-size:10px;letter-spacing:.1em;text-transform:uppercase;text-shadow:0 -1px 0 rgba(0,0,0,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.28),inset 0 0 0 1px rgba(0,0,0,.6),0 2px 4px rgba(0,0,0,.5);cursor:pointer;}.ds-plate:hover{filter:brightness(1.1);}.ds-plate:active{translate:0 1px;}.ds-plate:focus-visible{outline:2px solid var(--cream, #f3ead8);outline-offset:3px;}.ds-plate--update{background:linear-gradient(#ffc54d,#e8a01f 46%,#c47c06 47%,#d98e0d);color:#1d1202;text-shadow:none;}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Pedalboard",
+    "overview": "Every tool is one stompbox: a powder-coated enamel enclosure with a recessed black glass window, rotary knobs printed with their own scale, chrome footswitches with hex nuts, and side jacks. The app is the board they stand on: a near-black surface striped with horizontal mounting rails. Nothing on screen is an app panel, a pill button or a stepper; every control is a part you could buy for a real pedal, and it behaves like one (turn, stomp, flip).\n\nThe world is dark and material. Colour comes from three places only: the enamel of each enclosure, the cream silkscreen ink printed on it, and the LEDs behind the glass. Depth is physical, built from layered inset and drop shadows, chrome gradients with a hard horizon line, and a fine powder-coat speckle. Readings are large and condensed so they hold at two metres from a music stand; everything else is small, wide, uppercase silkscreen.\n\nEvery pedal part is sized in one unit, `--u`, derived from the pedal's own container, so a pedal is the same object at 390px and at 1440px, only bigger. A new tool arrives as a new pedal in a new enamel colour, built in the same shell.",
+    "keyCharacteristics": [
+      "One enclosure per tool, one enamel colour per enclosure.",
+      "Recessed black glass windows with warm-white numerals and LEDs.",
+      "Real hardware controls: knurled and chicken-head knobs, chrome stomp switches, a bat-handle toggle.",
+      "One type family, Archivo Variable, used across its width axis.",
+      "Every pedal dimension scales from one container unit.",
+      "Motion is physical, short and state-only."
+    ],
+    "rules": [
+      {
+        "name": "The LED Grammar Rule",
+        "body": "Red is status and accent, amber is beat and off-pitch, green means in tune and nothing else. A new tool reuses this grammar; it does not add a fourth LED colour or move green to \"on\" or \"OK\".",
+        "section": "colors"
+      },
+      {
+        "name": "The One Enamel per Pedal Rule",
+        "body": "Each tool owns exactly one enamel colour across its enclosure and its tab. Enamel never appears as text colour, and never inside the glass.",
+        "section": "colors"
+      },
+      {
+        "name": "The Width Axis Rule",
+        "body": "Hierarchy is carried by width as much as by size: expanded (125%) for anything printed on enamel, condensed (62-80%) for anything lit in the glass. Never introduce a second family.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two-Metre Rule",
+        "body": "The reading is the largest thing on a pedal and is always tabular. Labels stay small; they are learned once, the reading is read every second.",
+        "section": "typography"
+      },
+      {
+        "name": "The One Unit Rule",
+        "body": "Every pedal part is sized in `--u`. A fixed pixel size inside a pedal is allowed only as a minimum (legibility or touch-target floor).",
+        "section": "layout"
+      },
+      {
+        "name": "The Light from Above Rule",
+        "body": "All highlights sit on top and top-left edges, all cast shadows fall downward. A new part follows the same light.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** build every new tool with `pedalShell()` in its own enamel colour, next in line `enamel-mustard`.",
+      "**Do** size every pedal part in `--u`, with px minimums for text and touch targets.",
+      "**Do** keep LED meanings fixed: red for status and accent, amber for beat and off-pitch, green for in tune only.",
+      "**Do** print labels in expanded uppercase silkscreen on enamel, and set readings condensed with tabular figures in the glass.",
+      "**Do** make values directly enterable by tapping the reading, with the amber underline and caret.",
+      "**Do** keep motion physical and short (70-190ms), state-only, and drop transitions under reduced motion."
+    ],
+    "donts": [
+      "**Don't** use app panels, pill buttons, plus/minus steppers or a round needle gauge; every control is a pedal part.",
+      "**Don't** add a second type family or use system faces for display.",
+      "**Don't** use green for anything but in tune.",
+      "**Don't** put enamel colour inside the glass or use it as text colour.",
+      "**Don't** draw a footswitch or chrome part in CSS when the shared SVG chrome gradients exist; reuse them.",
+      "**Don't** use emoji or font glyphs for icons; icons are authored SVG on the 24-unit grid in `src/ui/icons.ts`."
+    ]
+  }
+}
