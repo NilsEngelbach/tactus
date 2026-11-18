@@ -21,3 +21,6 @@ wasm/pitch/target/
 .DS_Store
 Thumbs.db
 *.log
+
+# Good Sounds dataset for local tuner evaluation (15 GB, never commit)
+evaluation/
