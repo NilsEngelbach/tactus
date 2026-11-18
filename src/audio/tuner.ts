@@ -18,8 +18,44 @@ export interface Reading {
   live: boolean;
 }
 
-const HISTORY = 5;
+const HISTORY = 5; // readings in the median, about 55 ms
 const HOLD_MS = 1600;
+// The cents smoothing: a held pitch is steadied below 2 Hz, while a moving one
+// (a peg turned, a lip bend) opens the filter so the meter keeps up.
+const SMOOTH_MIN_HZ = 2;
+const SMOOTH_BETA = 0.03; // per cent/second of movement
+
+/**
+ * One Euro filter (Casiez, Roussel, Vogel, CHI 2012): a low-pass whose cutoff
+ * rises with the speed of the signal, so it is calm when still and quick when moving.
+ */
+class OneEuro {
+  private x = 0;
+  private dx = 0;
+  private t = 0;
+
+  constructor(
+    private readonly minHz: number,
+    private readonly beta: number,
+    private readonly dHz: number,
+  ) {}
+
+  reset(v: number, t: number) {
+    this.x = v;
+    this.dx = 0;
+    this.t = t;
+  }
+
+  /** `t` in milliseconds. */
+  filter(v: number, t: number): number {
+    const dt = Math.max(0.001, (t - this.t) / 1000);
+    this.t = t;
+    const alpha = (hz: number) => 1 / (1 + 1 / (2 * Math.PI * hz * dt));
+    this.dx += alpha(this.dHz) * ((v - this.x) / dt - this.dx);
+    this.x += alpha(this.minHz + this.beta * Math.abs(this.dx)) * (v - this.x);
+    return this.x;
+  }
+}
 
 let wasmModule: Promise<WebAssembly.Module | null> | null = null;
 function loadWasm(): Promise<WebAssembly.Module | null> {
@@ -41,7 +77,7 @@ export class Tuner {
   private node: AudioWorkletNode | null = null;
   private history: number[] = [];
   private current: number | null = null;
-  private smoothCents = 0;
+  private smooth = new OneEuro(SMOOTH_MIN_HZ, SMOOTH_BETA, 1);
   private lastLive = 0;
   private reading: Reading | null = null;
   private holdTimer = 0;
@@ -49,6 +85,7 @@ export class Tuner {
   private stateListeners = new Set<(s: TunerState) => void>();
   private ref: { osc: OscillatorNode; gain: GainNode; midi: number } | null = null;
   private refListeners = new Set<(midi: number | null) => void>();
+  private traceListeners = new Set<(midi: number | null) => void>();
 
   onReading(fn: (r: Reading | null) => void) {
     this.listeners.add(fn);
@@ -58,6 +95,13 @@ export class Tuner {
   }
   onReference(fn: (midi: number | null) => void) {
     this.refListeners.add(fn);
+  }
+  /** Every analysis frame: the unsmoothed pitch, or null when none was heard. */
+  onTrace(fn: (midi: number | null) => void) {
+    this.traceListeners.add(fn);
+  }
+  private emitTrace(midi: number | null) {
+    for (const fn of this.traceListeners) fn(midi);
   }
 
   private setState(s: TunerState, error: TunerError | null = null) {
@@ -148,6 +192,7 @@ export class Tuner {
     const now = performance.now();
     const pick = choosePitch(full, high);
     if (!pick) {
+      this.emitTrace(null);
       if (this.reading?.live && now - this.lastLive > 120) {
         this.reading = { ...this.reading, live: false };
         this.emit(this.reading);
@@ -180,14 +225,15 @@ export class Tuner {
     const med = sorted[sorted.length >> 1];
 
     // Stay on the note until the pitch is clearly closer to another one.
-    if (this.current === null || Math.abs(med - this.current) > 0.62) {
-      this.current = Math.round(med);
-      this.smoothCents = (med - this.current) * 100;
-    }
-    const cents = Math.max(-50, Math.min(50, (med - this.current) * 100));
-    this.smoothCents += (cents - this.smoothCents) * 0.35;
-    this.reading = { note: this.current, cents: this.smoothCents, freq: midiToFreq(med, this.a4), live: true };
+    const newNote = this.current === null || Math.abs(med - this.current) > 0.62;
+    const note: number = newNote ? Math.round(med) : this.current!;
+    this.current = note;
+    const cents = Math.max(-50, Math.min(50, (med - note) * 100));
+    // A new note, or a new attack after a pause, starts the meter where it is.
+    if (newNote || !this.reading?.live) this.smooth.reset(cents, now);
+    this.reading = { note, cents: this.smooth.filter(cents, now), freq: midiToFreq(med, this.a4), live: true };
     this.emit(this.reading);
+    this.emitTrace(midi);
   }
 
   // ── Reference tone ─────────────────────────────────────────────────────────

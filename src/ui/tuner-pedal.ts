@@ -9,6 +9,7 @@ import { arrowLeft, arrowRight, flatIcon, sharpIcon } from './icons';
 import { Knob } from './knob';
 import { pedalShell } from './pedal';
 import { Footswitch, led } from './switch';
+import { TunerTrace } from './tuner-trace';
 
 type TunerSettings = Settings['tuner'];
 const IN_TUNE = 3; // cents
@@ -62,11 +63,33 @@ export function tunerPedal(initial: TunerSettings, persist: (s: TunerSettings) =
   const message = h('div', { class: 'window-message' });
   const live = h('p', { class: 'sr-only', 'aria-live': 'polite' });
 
+  // Trace view: a short history line of the pitch under the note.
+  const trace = new TunerTrace({
+    inTune: IN_TUNE,
+    label: (m) => {
+      const n = noteName(m + shiftOf(), lang);
+      return noteText(n) + n.octave;
+    },
+  });
+  const traceText = h('span', {});
+  const traceButton = h(
+    'button',
+    { type: 'button', class: 'window-toggle silk-window' },
+    h('span', { class: 'window-toggle-led' }),
+    traceText,
+  );
+  traceButton.addEventListener('click', () => {
+    cfg = { ...cfg, view: cfg.view === 'trace' ? 'meter' : 'trace' };
+    persist(cfg);
+    render();
+  });
+
   const window_ = h(
     'div',
     { class: 'window tuner-window' },
-    h('div', { class: 'window-top' }, a4Button, keyText),
+    h('div', { class: 'window-top' }, a4Button, h('div', { class: 'window-top-right' }, keyText, traceButton)),
     h('div', { class: 'tuner-main', 'aria-hidden': 'true' }, flatArrow, noteEl, sharpArrow),
+    trace.el,
     meter,
     h('div', { class: 'window-bottom', 'aria-hidden': 'true' }, centsText, status, freqText),
     message,
@@ -182,6 +205,13 @@ export function tunerPedal(initial: TunerSettings, persist: (s: TunerSettings) =
     keyText.replaceChildren();
     if (shift) keyText.append(t.transpose.replace('.', '') + ' ', noteNode(transpositionLabel(cfg.transpose, lang), false));
 
+    const isTrace = cfg.view === 'trace';
+    window_.classList.toggle('is-trace', isTrace);
+    traceText.textContent = t.trace;
+    traceButton.setAttribute('aria-pressed', String(isTrace));
+    traceButton.setAttribute('aria-label', t.traceLabel);
+    if (isTrace) trace.refresh();
+
     const state = tuner.state;
     window_.dataset.state = state;
     window_.classList.toggle('is-ref', tuner.referenceNote !== null);
@@ -238,11 +268,30 @@ export function tunerPedal(initial: TunerSettings, persist: (s: TunerSettings) =
     }
   }
 
+  // Readings come about 90 times a second: draw at most once per display frame.
+  let frame = 0;
   tuner.onReading((r) => {
     reading = r;
+    if (r === null) {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      render();
+    } else if (!frame) {
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        render();
+      });
+    }
+  });
+  tuner.onTrace((p) => {
+    if (cfg.view !== 'trace') return;
+    if (p !== null) trace.push(p);
+    else trace.silence();
+  });
+  tuner.onState((s) => {
+    if (s !== 'listening') trace.clear();
     render();
   });
-  tuner.onState(() => render());
   tuner.onReference((midi) => {
     refLed.classList.toggle('is-on', midi !== null);
     refSwitch.setPressed(midi !== null);

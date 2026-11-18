@@ -77,14 +77,16 @@ No UI framework: plain TypeScript building DOM through a small `h()` helper (`sr
 
 ### Tuner
 
-- `pitch.worklet.ts` fills a 4096-sample ring buffer from the microphone (echo cancellation, noise suppression and auto gain off) and analyses it every 1024 samples (2048 above 60 kHz). That is about 47 readings per second at 48 kHz.
+- `pitch.worklet.ts` fills a 4096-sample ring buffer from the microphone (echo cancellation, noise suppression and auto gain off) and analyses it every 512 samples. That is about 94 readings per second at 48 kHz. Above 60 kHz every length doubles.
+- **Window per pitch:** a window reports the pitch around its middle, so a long one answers late. Once a band tracks a pitch, it analyses the shortest of 1024, 2048 and 4096 samples that holds 8 periods (1024 from about 380 Hz, so roughly 11 ms behind instead of 43 ms) and keeps that answer only within 150 cents of the tracked pitch. A short window cannot see a low fundamental and might land on a harmonic, so everything else goes through the 4096 window. At a note's onset, while the long window still holds mostly silence, a short window may start the note; the long window confirms or corrects it within 16 frames.
 - **Two bands** (`band.ts`): every window is analysed twice, as is and band-passed (two Butterworth high-pass sections at 150 Hz, one low-pass at 5 kHz, filtered as the samples stream in). Low notes need the full band. A quiet higher note drowns in hum and rumble, which keep the NSDF positive past the note's period, so the full band finds nothing or locks onto the hum. In the band-passed copy the same note reads at about 6 dB lower SNR, at a lower level.
 - The detector is the **McLeod Pitch Method**: the normalised square difference function, with the autocorrelation computed through an FFT. It takes the first key maximum above 0.9 of the highest one, then refines it with parabolic interpolation. Range: 27 Hz to 4.5 kHz.
+- **Strobe-style refinement** (`refine`): a strobe tuner compares phase. Over d samples a steady tone at f advances its phase by 2π·f·d/sample rate, so comparing the phase of the first four harmonics (one DFT bin each, Hann window) between the two halves of the window measures f far more finely than the NSDF peak can be placed. It removes MPM's bias on bright high notes and cuts the scatter in noise severalfold. It stands back (MPM's pitch is used) when a half holds fewer than 2.5 periods (below about 94 Hz in the long window), when the halves differ by more than 6 dB at the harmonics (a note starting or stopping), or when it lands more than 20 cents from MPM.
 - The main thread (`tuner.ts`):
   - **Gate:** a band counts when its clarity is at least 0.86 and its level is above about −52 dBFS (full band) or −58 dBFS (band-passed, where hum and rumble no longer add to the level).
   - **Band choice** (`choosePitch`): the full band wins when the band-passed reading is the same note, or a harmonic of a note below 225 Hz, so low notes read as they did with one band. Otherwise the band-passed reading wins: when the full band found nothing, found something unrelated (mains hum), or, above 225 Hz, a less clear subharmonic. If the band-passed reading takes over while a low note fades, a harmonic of the note on display is folded back onto it.
-  - **Settling:** takes the median of the last five readings and only changes note once the pitch is more than 0.62 semitones from the current one.
-  - **Display:** smooths the cents and holds the last reading for 1.6 s after the note stops.
+  - **Settling:** takes the median of the last five readings (about 55 ms) and only changes note once the pitch is more than 0.62 semitones from the current one.
+  - **Display:** smooths the cents with a One Euro filter (Casiez et al., CHI 2012): below 2 Hz while the pitch holds still, opening up as it moves, so the meter is calm on a held note and keeps up with a turned peg. A new note or a new attack starts it afresh. The last reading is held for 1.6 s after the note stops.
   - **In tune:** within ±3 cents.
 - The reference tone is an oscillator with a few soft harmonics, so low notes stay audible on small speakers. It is chosen as written pitch and sounds transposed for B♭, E♭ and F instruments.
 
@@ -92,16 +94,17 @@ No UI framework: plain TypeScript building DOM through a small `h()` helper (`sr
 
 The page fetches and compiles `pitch.wasm`, then passes the compiled module to the worklet, which instantiates it. If that fails (an old browser, a strict policy), the worklet keeps the TypeScript port in `src/audio/mpm.ts`; both implement the same algorithm.
 
-Measured in Chromium through the real worklet, with test tones:
+Measured in Chromium through the real worklet, with test tones and room noise about 35 dB down (median of the readings over one second; settling is the time until the display stays within 2 cents after a 25-cent step, including about 145 ms the test's fake microphone adds):
 
-| Signal | Error |
-|---|---|
-| Sawtooth B0 30.87 Hz (5-string bass) | −0.01 ct |
-| Sawtooth E1 41.2 Hz | 0.01 ct |
-| Sawtooth A2 110 Hz | 0.11 ct |
-| Triangle G3 196 Hz | 0.00 ct |
-| Sine A4 440 Hz and 12 ct flat | 0.00 ct |
-| Square E6 1318.5 Hz | 1.01 ct |
+| Signal | Error | Settling after a −25 ct step |
+|---|---|---|
+| Sawtooth A4 440 Hz | 0.02 ct | 213 ms (was 353 ms with the fixed 4096 window) |
+| Sawtooth E2 82.4 Hz | −0.01 ct | 256 ms (was 342 ms) |
+| Square E6 1318.5 Hz | 0.00 ct (was 0.55 ct) | |
+| Sawtooth C7 2093 Hz | 0.00 ct (was −0.85 ct) | |
+| E2 with a weak fundamental (2nd and 3rd harmonics 6× louder) | −0.01 ct, never a wrong note | |
+
+`cargo test --release -- --ignored --nocapture report` prints the detector's errors against plain MPM on the 4096 window for sine, sawtooth and brass-like tones from 41 Hz to 3.5 kHz at 60, 20 and 10 dB SNR.
 
 The metronome rendered clicks with 0.00 samples deviation at 120 BPM and 0.64 samples (0.013 ms) at 97 BPM in eighths.
 
@@ -114,9 +117,9 @@ rustup target add wasm32-unknown-unknown   # once
 npm run build:wasm                         # cargo test, release build, copy to src/audio/pitch.wasm
 ```
 
-The Rust tests (`wasm/pitch/src/lib.rs`) cover a sine at A4, a low E and a low B with harmonics, a weak fundamental, a high note, silence and a detuned tone. Keep `src/audio/mpm.ts` in step with the Rust code.
+The Rust tests (`wasm/pitch/src/lib.rs`) cover a sine at A4, a low E and a low B with harmonics, a weak fundamental, a high note, silence and a detuned tone; for `refine`, the high-note bias, noise against plain MPM, a measured detuning, and that it stands back on too few periods and at an onset. Keep `src/audio/mpm.ts` in step with the Rust code: on the same input the two agree to within 0.0001 cents.
 
-The module exports a plain C ABI (`tp_init`, `tp_detect`, `tp_clarity`, `tp_rms`). Each call takes a slot: 0 holds the full-band detector, 1 the band-passed one. Only `tp_init` allocates, and the worklet initialises both slots before it creates its `Float32Array` views, so memory growth cannot detach them.
+The module exports a plain C ABI (`tp_init`, `tp_detect`, `tp_refine`, `tp_clarity`, `tp_rms`). Each call takes a slot, one per band and window size: slot = band × 3 + size index, band 0 the full band and 1 the band-passed one, sizes short to long. Only `tp_init` allocates, and the worklet initialises all six slots before it creates its `Float32Array` views, so memory growth cannot detach them.
 
 ### Offline and updates
 

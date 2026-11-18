@@ -12,8 +12,12 @@ export class Mpm {
   private readonly sin: Float32Array;
   private readonly rev: Uint32Array;
   private readonly nsdf: Float32Array;
+  private readonly hann: Float32Array;
 
   constructor(private readonly w: number) {
+    const d = w >> 1;
+    this.hann = new Float32Array(d);
+    for (let i = 0; i < d; i++) this.hann[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / d);
     let n = 1;
     while (n < 2 * w) n <<= 1;
     this.n = n;
@@ -134,4 +138,71 @@ export class Mpm {
     this.clarity = Math.min(1, peak);
     return sampleRate / (chosen + delta);
   }
+
+  /**
+   * Refines `f0`, found by `detect` on the same input, strobe-style: by how far
+   * the phase of the first harmonics advances between the two halves of the
+   * window. Returns 0 when the halves hold too few periods, differ too much in
+   * level (a note starting or stopping) or the result strays.
+   */
+  refine(sampleRate: number, f0: number, fmax: number): number {
+    const { input, hann } = this;
+    const d = this.w >> 1;
+    if (f0 <= 0 || d < MIN_PERIODS * (sampleRate / f0)) return 0;
+    const tau = 2 * Math.PI;
+    let num = 0;
+    let den = 0;
+    let ea = 0;
+    let eb = 0;
+    for (let h = 1; h <= HARMONICS; h++) {
+      const fh = f0 * h;
+      if (fh > fmax) break;
+      // One DFT bin at fh over each half, the rotation e^(-i w n) kept by recursion.
+      const omega = (tau * fh) / sampleRate;
+      const c = Math.cos(omega);
+      const s = Math.sin(omega);
+      let zr = 1;
+      let zi = 0;
+      let ar = 0;
+      let ai = 0;
+      let br = 0;
+      let bi = 0;
+      for (let i = 0; i < d; i++) {
+        const xa = input[i] * hann[i];
+        const xb = input[i + d] * hann[i];
+        ar += xa * zr;
+        ai += xa * zi;
+        br += xb * zr;
+        bi += xb * zi;
+        const t = zr * c + zi * s;
+        zi = zi * c - zr * s;
+        zr = t;
+      }
+      // B times conj(A): its angle is the phase advance over d samples, its size weighs the harmonic.
+      const cr = br * ar + bi * ai;
+      const ci = bi * ar - br * ai;
+      const weight = Math.hypot(cr, ci);
+      ea += ar * ar + ai * ai;
+      eb += br * br + bi * bi;
+      if (weight <= 0) continue;
+      let err = Math.atan2(ci, cr) - omega * d;
+      err -= tau * Math.round(err / tau);
+      num += (weight * (fh + (err * sampleRate) / (tau * d))) / h;
+      den += weight;
+    }
+    // The halves must hold the same tone: at an onset the first half is still
+    // mostly silence and its phase is noise.
+    if (den <= 0 || Math.min(ea, eb) < MIN_HALF_POWER * Math.max(ea, eb)) return 0;
+    const f = num / den;
+    return Math.abs(1200 * Math.log2(f / f0)) > MAX_SHIFT_CENTS ? 0 : f;
+  }
 }
+
+/** Harmonics `refine` measures (fewer when they pass `fmax`). */
+const HARMONICS = 4;
+/** `refine` needs this many periods in each half of the window. */
+const MIN_PERIODS = 2.5;
+/** A refined pitch further than this from MPM's is not trusted. */
+const MAX_SHIFT_CENTS = 20;
+/** The weaker half must hold this share of the stronger half's power at the harmonics (-6 dB). */
+const MIN_HALF_POWER = 0.25;

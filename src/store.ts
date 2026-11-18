@@ -8,7 +8,7 @@ export interface Settings {
   lang: Lang | null;
   tempo: TempoConfig;
   /** refNote: the reference tone as written pitch (MIDI), C1 to C6. */
-  tuner: { a4: number; transpose: TranspositionId; refNote: number };
+  tuner: { a4: number; transpose: TranspositionId; refNote: number; view: 'meter' | 'trace' };
 }
 
 const KEY = 'tactus:v1';
@@ -16,7 +16,7 @@ const KEY = 'tactus:v1';
 export const defaults: Settings = {
   lang: null,
   tempo: { bpm: 96, beats: 4, subdiv: 1, accents: [2, 1, 1, 1], voice: 1, level: 0.8 },
-  tuner: { a4: 440, transpose: 'C', refNote: 69 },
+  tuner: { a4: 440, transpose: 'C', refNote: 69, view: 'meter' },
 };
 
 const clamp = (v: unknown, min: number, max: number, d: number) =>
@@ -53,6 +53,7 @@ export function load(): Settings {
       a4: Math.round(clamp(tn.a4, 415, 466, 440)),
       transpose: (['C', 'Bb', 'Eb', 'F'] as const).find((x) => x === tn.transpose) ?? 'C',
       refNote: Math.round(clamp(tn.refNote, 24, 84, 69)),
+      view: tn.view === 'trace' ? 'trace' : 'meter',
     },
   };
 }

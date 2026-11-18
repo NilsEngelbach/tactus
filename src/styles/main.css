@@ -722,6 +722,11 @@ button {
 .tuner-window.is-held .window-bottom {
   opacity: 0.4;
 }
+/* equal outer columns: the status stays centred however wide the readings get */
+.tuner-window .window-bottom {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+}
 .tuner-status {
   text-align: center;
 }
@@ -730,6 +735,7 @@ button {
   min-width: 6ch;
 }
 .tuner-freq {
+  justify-self: end;
   text-align: right;
 }
 .tuner-key {
@@ -741,6 +747,65 @@ button {
   width: 0.7em;
   height: 0.9em;
   display: block;
+}
+
+/* Trace view: a history line of the pitch between note and LED bar. */
+.window-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  min-height: 32px;
+  margin: -6px -4px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+.window-toggle:hover {
+  color: var(--readout);
+}
+.window-toggle-led {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--led-amber) 18%, #191512);
+}
+.window-toggle[aria-pressed='true'] {
+  color: var(--readout);
+}
+.window-toggle[aria-pressed='true'] .window-toggle-led {
+  background: var(--led-amber);
+  box-shadow: 0 0 6px color-mix(in oklab, var(--led-amber) 70%, transparent);
+}
+.tuner-trace {
+  display: none;
+  position: relative;
+  flex: 1 1 0;
+  min-height: calc(20 * var(--u));
+}
+.tuner-trace canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.tuner-window.is-trace .tuner-trace {
+  display: block;
+}
+.tuner-window.is-trace .tuner-main {
+  flex: 0 0 auto;
+}
+.tuner-window.is-trace .tuner-note {
+  font-size: min(calc(20 * var(--u)), 13cqh);
+}
+.tuner-window.is-trace .tuner-arrow svg {
+  width: min(calc(7 * var(--u)), 30px);
+  height: min(calc(7 * var(--u)), 30px);
+}
+/* nothing to trace while the tuner is off: the message has the window */
+.tuner-window.is-trace:is([data-state='off'], [data-state='starting'], [data-state='error']) .tuner-trace {
+  display: none;
 }
 
 .window-message {
