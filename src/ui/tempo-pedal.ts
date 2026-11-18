@@ -6,7 +6,7 @@ import { onLang, t } from '../i18n';
 import { accentsFor } from '../store';
 import { h } from './dom';
 import { valueEntry } from './entry';
-import { subdivIcon, voiceIcon } from './icons';
+import { subdivIcon, voiceIcon, warningIcon } from './icons';
 import { Knob } from './knob';
 import { pedalShell } from './pedal';
 import { Footswitch, flash, led } from './switch';
@@ -20,6 +20,13 @@ export interface TempoPedal {
   /** Opens tempo entry, optionally starting with a typed digit. */
   enter(first?: string): void;
 }
+
+/** The voice that flashes the display instead of sounding. */
+const LIGHT_ONLY = 4;
+/** 3 flashes a second. */
+const SAFE_FLASH_BPM = 180;
+/** With Reduce Motion on, the display does not flash above SAFE_FLASH_BPM. */
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
 export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => void): TempoPedal {
   let cfg: TempoConfig = { ...initial, accents: [...initial.accents] };
@@ -145,7 +152,7 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     max: 2,
     step: 1,
     value: cfg.voice,
-    stops: [0, 1, 2].map((v) => ({ value: v, mark: () => voiceIcon[v](), text: () => t.voices[v] })),
+    stops: [0, 1, 2, 3, 4].map((v) => ({ value: v, mark: () => voiceIcon[v](), text: () => t.voices[v] })),
     valueText: (v) => t.voices[v],
     onInput: (v) => update({ voice: v as TempoConfig['voice'] }),
   });
@@ -173,6 +180,7 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     const bpm = tapper.tap();
     flash(tapLed);
     if (bpm) update({ bpm: Math.round(Math.min(300, Math.max(30, bpm))) });
+    restIdle();
   };
   const toggle = () => {
     metronome.toggle().catch(() => {
@@ -205,12 +213,23 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     ],
   });
 
+  // Light-only voice: the display lights up on each sounding beat, like a
+  // backlight. Beats only, never subdivisions: a large surface flashing fast is
+  // hard on the eyes (and a risk for photosensitive players); the beat LEDs
+  // still show them.
+  const displayFlash = h('span', { class: 'window-flash', 'aria-hidden': 'true' });
+  window_.prepend(displayFlash);
+
   // ── Beat lights from the audio clock ─────────────────────────────────────
   let lastBeat = -1;
   metronome.onBeat((ev) => {
     const el = beatEls[ev.beat];
     if (!el) return;
     const l = el.firstElementChild as HTMLElement;
+    const flashOff = reducedMotion.matches && cfg.bpm > SAFE_FLASH_BPM;
+    if (ev.sub === 0 && cfg.voice === LIGHT_ONLY && ev.accent !== 0 && !flashOff) {
+      flash(displayFlash, ev.accent === 2 ? 'is-flash-accent' : 'is-flash');
+    }
     if (ev.sub === 0) {
       beatEls.forEach((b) => b.classList.remove('is-current'));
       el.classList.add('is-current');
@@ -230,16 +249,22 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
   });
 
   // While stopped, the TAP light blinks the set tempo, like a delay pedal.
-  let idleStart = performance.now();
-  let idleBeat = -1;
-  const idle = () => {
-    if (!metronome.running && !document.hidden) {
-      const period = 60000 / cfg.bpm;
-      const n = Math.floor((performance.now() - idleStart) / period);
-      if (n !== idleBeat) {
-        idleBeat = n;
-        flash(tapLed, 'is-flash-dim');
-      }
+  // Each blink schedules the next one, so a tempo change only changes the gap
+  // that follows (no extra or skipped blink), and a tap restarts the rhythm
+  // from itself instead of blinking in between the taps.
+  let idleNext = 0;
+  const restIdle = () => {
+    idleNext = performance.now() + 60000 / cfg.bpm;
+  };
+  const idle = (now: number) => {
+    if (metronome.running || document.hidden) {
+      idleNext = 0;
+    } else if (!idleNext) {
+      restIdle();
+    } else if (now >= idleNext) {
+      flash(tapLed, 'is-flash-dim');
+      idleNext += 60000 / cfg.bpm;
+      if (idleNext < now) restIdle(); // after a stall, no catch-up burst
     }
     requestAnimationFrame(idle);
   };
@@ -253,7 +278,14 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     meterText.textContent = `${t.beats} ${cfg.beats}`;
     subdivGlyph.replaceChildren(subdivIcon[cfg.subdiv - 1]());
     subdivGlyph.setAttribute('title', t.subdivNames[cfg.subdiv - 1]);
-    hint.textContent = t.accentHint;
+    // More than 3 flashes a second is the photosensitive-epilepsy limit
+    // (WCAG 2.3.1); the light-only voice flashes the whole display once a beat.
+    // With Reduce Motion on, the flash is off up there instead, and the line says so.
+    const fastFlash = cfg.voice === LIGHT_ONLY && cfg.bpm > SAFE_FLASH_BPM;
+    hint.classList.toggle('is-warning', fastFlash);
+    if (fastFlash)
+      hint.replaceChildren(warningIcon(), h('span', {}, reducedMotion.matches ? t.flashOffReduced : t.flashWarning));
+    else hint.textContent = t.accentHint;
     if (beatEls.length !== cfg.beats) buildBeats();
     beatEls.forEach((b, i) => {
       const a = cfg.accents[i];
@@ -267,6 +299,7 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     levelKnob.set(cfg.level);
   }
 
+  reducedMotion.addEventListener('change', () => render());
   onLang(() => {
     [tempoKnob, beatsKnob, subdivKnob, voiceKnob, levelKnob].forEach((k) => k.relabel());
     tapSwitch.relabel();
@@ -284,8 +317,8 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     tap,
     enter: (first) => entry.open(first),
     nudge: (d) => {
-      idleStart = performance.now();
       update({ bpm: Math.min(300, Math.max(30, cfg.bpm + d)) });
+      restIdle();
     },
   };
 }

@@ -47,6 +47,10 @@ export const flatIcon = () =>
 export const arrowRight = () => svg(wrap('<path d="M5 3.5 20 12 5 20.5z"/>'));
 export const arrowLeft = () => svg(wrap('<path d="M19 3.5 4 12l15 8.5z"/>'));
 
+/** A warning triangle with an exclamation mark cut out. */
+export const warningIcon = () =>
+  svg(wrap('<path fill-rule="evenodd" d="M12 2.5 23 21.5H1zM11 9.5h2v6h-2zm0 7.6h2v2h-2z"/>'));
+
 export const downloadIcon = () =>
   svg(wrap('<path d="M11 3h2v10.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6z"/><rect x="4" y="19" width="16" height="2"/>'));
 
@@ -57,4 +61,14 @@ export const voiceIcon = [
   () => svg(wrap('<rect x="4" y="8" width="16" height="9" rx="1.5"/><rect x="7" y="11" width="10" height="1.6" fill="#000" opacity=".35"/>')),
   // beep: a sine
   () => svg(wrap('<path d="M2 12c2.2-6.4 4.4-6.4 6.6 0s4.4 6.4 6.6 0 4.4-6.4 6.6 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>')),
+  // claves: two sticks crossing
+  () => svg(wrap('<rect x="1.5" y="10.6" width="21" height="2.8" rx="1.4" transform="rotate(-28 12 12)"/><rect x="1.5" y="10.6" width="21" height="2.8" rx="1.4" transform="rotate(28 12 12)"/>')),
+  // light only: a lamp with rays
+  () =>
+    svg(
+      wrap(
+        '<circle cx="12" cy="12" r="4.6"/>' +
+          [0, 45, 90, 135, 180, 225, 270, 315].map((a) => `<rect x="11" y="1.2" width="2" height="4" rx="1" transform="rotate(${a} 12 12)"/>`).join(''),
+      ),
+    ),
 ];

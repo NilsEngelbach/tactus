@@ -13,12 +13,15 @@ interface Voice {
   gain: number;
 }
 
-const LENGTH = 0.09; // seconds per click sample
+const LENGTH = 0.09; // seconds per click sample (the claves ring longer)
+
+/** The light-only voice: ticks are counted and reported, nothing sounds. */
+const SILENT = 4;
 
 /** Synthesises the click buffers: [voice][kind]. */
 function buildSounds(sr: number): Float32Array[][] {
-  const n = Math.round(LENGTH * sr);
-  const make = (fn: (t: number) => number) => {
+  const make = (fn: (t: number) => number, length = LENGTH) => {
+    const n = Math.round(length * sr);
     const b = new Float32Array(n);
     for (let i = 0; i < n; i++) b[i] = fn(i / sr);
     // short fade-out so no buffer ends on a step
@@ -52,10 +55,44 @@ function buildSounds(sr: number): Float32Array[][] {
       return Math.sin(tau * f * t) * env * 0.55;
     });
 
+  // Brings a buffer to a common loudness (RMS of its first 40 ms), so it sits
+  // level with the other voices, but never past a 0.95 peak
+  // (no clipping at full level); ends it on a short fade.
+  const level = (b: Float32Array, target: number) => {
+    const m = Math.min(b.length, Math.round(0.04 * sr));
+    let sum = 0;
+    let peak = 0;
+    for (let i = 0; i < m; i++) sum += b[i] * b[i];
+    for (let i = 0; i < b.length; i++) peak = Math.max(peak, Math.abs(b[i]));
+    const g = Math.min(target / Math.sqrt(sum / m), 0.95 / peak);
+    for (let i = 0; i < b.length; i++) b[i] *= g;
+    const fade = Math.round(0.004 * sr);
+    for (let i = 0; i < fade; i++) b[b.length - 1 - i] *= i / fade;
+    return b;
+  };
+  // Claves: a struck hardwood rod. One clear, ringing pitch; the rod's upper
+  // modes (2.76x and 5.40x, a free bar) die away within milliseconds.
+  // Accent and beat share the pitch (the gain sets them apart); subdivisions
+  // are damped a little, like a softer stroke.
+  const claves = (damp: number) => {
+    const f = 2350;
+    return level(
+      make(
+        (t) =>
+          (t < 0.00025 ? t / 0.00025 : 1) *
+          (Math.sin(tau * f * t) * Math.exp(-t / (0.055 * damp)) +
+            Math.sin(tau * f * 2.756 * t) * Math.exp(-t / (0.012 * damp)) * 0.2 +
+            Math.sin(tau * f * 5.404 * t) * Math.exp(-t / 0.004) * 0.05),
+        0.22,
+      ),
+      0.26,
+    );
+  };
   return [
     [click(2093), click(1568), click(1175)],
     [wood(1250), wood(940), wood(760)],
     [beep(1760), beep(880), beep(660)],
+    [claves(1), claves(1), claves(0.6)],
   ];
 }
 
@@ -123,9 +160,12 @@ class MetronomeProcessor extends AudioWorkletProcessor {
     const sub = this.tick % subdiv;
     const accent: Accent = accents[beat] ?? 1;
     const kind: Kind = sub > 0 ? 2 : accent === 2 ? 0 : 1;
-    if (accent !== 0) {
+    if (accent !== 0 && voice !== SILENT) {
+      // An unknown voice (a page from an older version) clicks instead of
+      // throwing: an exception here would kill the processor for good.
+      const bank = this.sounds[voice] ?? this.sounds[0];
       // pos < 0 means "starts |pos| frames into this block"
-      this.active.push({ buf: this.sounds[voice][kind], pos: -offset, gain: KIND_GAIN[kind] });
+      this.active.push({ buf: bank[kind], pos: -offset, gain: KIND_GAIN[kind] });
     }
     const ev: TickEvent = { t: 'tick', time: (currentFrame + offset) / sampleRate, beat, sub, accent };
     this.port.postMessage(ev);

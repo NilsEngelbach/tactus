@@ -41,7 +41,8 @@ When a new version is published, it downloads quietly in the background and an a
 - 30–300 BPM, with the Italian tempo term (Andante, Allegro …) in the display
 - 1–12 beats per bar; each beat accented, normal or silent
 - Quarter, eighth, triplet and sixteenth subdivisions
-- Three sounds (click, wood, beep) and a level knob
+- Four sounds (click, wood, beep, claves) and a level knob
+- A silent, light-only mode: the display lights up on each beat
 - Tap tempo; or type a tempo: tap the number, double-tap the knob, or type digits on a keyboard
 - Rock steady: every click is placed on an exact audio sample inside the audio engine, so timing holds with the screen off or the app in the background, and the screen stays awake while it runs
 

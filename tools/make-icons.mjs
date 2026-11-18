@@ -21,12 +21,12 @@ const pedal = (pad) => `
   </defs>
 </svg>`;
 
-mkdirSync('public/icons', { recursive: true });
+mkdirSync('public/pwa', { recursive: true });
 const jobs = [
-  ['public/icons/icon-192.png', 192, 40],
-  ['public/icons/icon-512.png', 512, 40],
-  ['public/icons/maskable-512.png', 512, 96],
-  ['public/icons/apple-touch-icon.png', 180, 56],
+  ['public/pwa/icon-192.png', 192, 40],
+  ['public/pwa/icon-512.png', 512, 40],
+  ['public/pwa/maskable-512.png', 512, 96],
+  ['public/apple-touch-icon.png', 180, 56],
 ];
 for (const [file, size, pad] of jobs) {
   await sharp(Buffer.from(pedal(pad))).resize(size, size).png().toFile(file);

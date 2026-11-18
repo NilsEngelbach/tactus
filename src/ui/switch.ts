@@ -54,9 +54,11 @@ export function led(color: LedColor, extra = ''): HTMLElement {
   return h('span', { class: `led led--${color} ${extra}`.trim(), 'aria-hidden': 'true' });
 }
 
-/** Lights an LED briefly; restarting the class restarts the flash. */
+/** Lights an LED (or the pedal body) briefly; restarting the class restarts the
+ *  flash. Any other is-flash* class still on it is cleared first, or its
+ *  animation would win the cascade and the new one would not restart. */
 export function flash(el: HTMLElement, cls = 'is-flash') {
-  el.classList.remove(cls);
+  for (const c of [...el.classList]) if (c.startsWith('is-flash')) el.classList.remove(c);
   void el.offsetWidth;
   el.classList.add(cls);
 }

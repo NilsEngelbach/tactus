@@ -22,7 +22,7 @@ npm run dev          # http://localhost:5173 with live reload
 | `npm run preview` | Serves `dist/` on http://localhost:4173, with the service worker |
 | `npm run typecheck` | Typecheck only |
 | `npm run build:wasm` | Rust tests, then builds `wasm/pitch` into `src/audio/pitch.wasm` |
-| `npm run icons` | Re-renders `public/icons/*.png` from the authored SVG in `tools/make-icons.mjs` |
+| `npm run icons` | Re-renders `public/apple-touch-icon.png` and `public/pwa/*.png` from the authored SVG in `tools/make-icons.mjs` |
 
 ## Trying the installable, offline build
 
@@ -70,7 +70,7 @@ No UI framework: plain TypeScript building DOM through a small `h()` helper (`sr
 
 ### Metronome
 
-- `metronome.worklet.ts` runs in the audio thread. It synthesises the click sounds once (three voices, each in accent, normal and subdivision versions) and places each click on its exact sample. The next click position is kept as a fractional frame count, so long runs never drift. Timers and the main thread play no part in the timing, so the click stays steady in a background tab or with the screen off.
+- `metronome.worklet.ts` runs in the audio thread. It synthesises the click sounds once (four voices, each in accent, normal and subdivision versions; the light-only voice renders nothing but still reports every tick) and places each click on its exact sample. The next click position is kept as a fractional frame count, so long runs never drift. Timers and the main thread play no part in the timing, so the click stays steady in a background tab or with the screen off.
 - Tempo, beats, accents and subdivision changes take effect from the next click.
 - For every click the worklet posts a tick with its AudioContext time. `metronome.ts` queues them and lights the beat when `getOutputTimestamp()` says that sample reaches the speaker, so the light matches what you hear rather than what was computed.
 - While anything plays, a screen wake lock keeps the display on (`engine.ts`). On iOS the audio session is set to `playback`, so the click is audible with the silent switch on.

@@ -40,6 +40,13 @@
   box-sizing: border-box;
 }
 
+/* No double-tap zoom: quick repeated taps (tap tempo, footswitches, steppers) must
+   stay taps. On every element, because touch-action does not reach through the
+   scrolling rack; controls that need more (knobs: none) override it. */
+* {
+  touch-action: manipulation;
+}
+
 html,
 body {
   margin: 0;
@@ -421,6 +428,44 @@ button {
     0 0 0 calc(1.1 * var(--u)) color-mix(in oklab, var(--enamel) 62%, #000),
     0 calc(0.4 * var(--u)) 0 calc(1.1 * var(--u)) rgba(255, 255, 255, 0.12);
 }
+/* Light-only metronome: the whole glass lights up on each beat, in the colour
+   of the beat LEDs: amber for a beat, red for an accent (silent beats stay dark).
+   It sits behind the readouts (the window isolates, the flash is at z-index -1)
+   and under the reflection. */
+.window {
+  isolation: isolate;
+}
+.window-flash {
+  --flash: var(--led-amber);
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--flash);
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity;
+}
+.window-flash.is-flash {
+  animation: window-flash 200ms ease-out;
+}
+.window-flash.is-flash-accent {
+  --flash: var(--led-red);
+  animation: window-flash 240ms ease-out;
+}
+@keyframes window-flash {
+  0%,
+  25% {
+    opacity: var(--flash-peak, 1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .window-flash {
+    --flash-peak: 0.6;
+  }
+}
 /* the glass: one faint reflection across the top */
 .window::before {
   content: '';
@@ -482,6 +527,24 @@ button {
   font-weight: 500;
   color: var(--readout-dim);
   text-align: center;
+}
+/* Light-only above 180 BPM: a flashing warning replaces the hint. On its own
+   dark plate, so it stays readable while the glass flashes amber or red. */
+.window-hint.is-warning {
+  align-self: center;
+  padding: 0.35em 0.8em;
+  border-radius: 0.5em;
+  background: rgba(0, 0, 0, 0.72);
+  font-weight: 700;
+  color: var(--led-amber);
+  text-wrap: balance;
+}
+.window-hint.is-warning svg {
+  display: inline-block;
+  width: 1.3em;
+  height: 1.3em;
+  margin-right: 0.35em;
+  vertical-align: -0.28em;
 }
 
 /* ── Tempo window ────────────────────────────────────────────────────────── */
@@ -751,6 +814,9 @@ button {
   background: radial-gradient(circle at 40% 34%, #fff 0 9%, var(--c) 46%, color-mix(in oklab, var(--c) 72%, #000));
   box-shadow: 0 0 calc(var(--s) * 0.9) calc(var(--s) * 0.12) color-mix(in oklab, var(--c) 70%, transparent);
   opacity: 0;
+  /* A standing layer: otherwise iOS Safari builds and drops one for every flash,
+     which flickers the light and repaints its neighbours (the footswitch). */
+  will-change: opacity;
 }
 .led.is-on::after {
   opacity: 1;
@@ -792,10 +858,18 @@ button {
 
 /* ── Knobs ───────────────────────────────────────────────────────────────── */
 
+/* Air between the window and the knobs: the printed scales reach above the
+   knob boxes. It comes out of spare height only: --spare is how much taller the
+   pedal is than its width needs (100 units wide ↔ 166.7 tall). Tall phone
+   pedals get the full gap; a height-bound pedal (desktop) keeps its window. */
 .controls {
+  --spare: calc(100cqh - 166.7cqw);
   flex: none;
+  margin-top: clamp(calc(1.5 * var(--u)), var(--spare), calc(3 * var(--u)));
 }
 .controls--tempo {
+  margin-top: clamp(calc(1.5 * var(--u)), var(--spare), calc(5 * var(--u)));
+  margin-bottom: clamp(0px, calc(var(--spare) - 5 * var(--u)), calc(1.5 * var(--u)));
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
@@ -1104,6 +1178,9 @@ button {
   height: 120%;
   overflow: visible;
   filter: drop-shadow(0 calc(0.6 * var(--u)) calc(0.8 * var(--u)) rgba(0, 0, 0, 0.45));
+  /* Rasterised once on its own layer, so repaints around it (the LED above
+     flashes every beat) cannot re-snap it to the pixel grid: no wiggle on iOS. */
+  will-change: transform;
 }
 .footswitch-cap {
   transition: translate 70ms ease-out;

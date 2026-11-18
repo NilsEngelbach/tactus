@@ -9,8 +9,8 @@ export interface TempoConfig {
   subdiv: 1 | 2 | 3 | 4;
   /** One entry per beat. */
   accents: Accent[];
-  /** 0 click, 1 wood, 2 beep. */
-  voice: 0 | 1 | 2;
+  /** 0 click, 1 wood, 2 beep, 3 claves, 4 light only (no sound). */
+  voice: 0 | 1 | 2 | 3 | 4;
   /** 0 to 1. */
   level: number;
 }

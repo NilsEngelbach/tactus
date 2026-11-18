@@ -54,6 +54,13 @@ export class Metronome {
         node.port.onmessage = (e: MessageEvent<TickEvent>) => {
           if (!document.hidden) this.queue.push(e.data);
         };
+        // If the processor ever dies, stop cleanly and build a fresh one on the
+        // next start, instead of a switch that is on but silent and dark.
+        node.onprocessorerror = () => {
+          node.disconnect();
+          if (this.node === node) this.node = null;
+          this.stop();
+        };
         node.connect(ctx.destination);
         this.node = node;
       }

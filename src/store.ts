@@ -46,7 +46,7 @@ export function load(): Settings {
       beats,
       subdiv: ([1, 2, 3, 4] as const).find((s) => s === tp.subdiv) ?? 1,
       accents: accentsFor(beats, acc as Accent[]),
-      voice: ([0, 1, 2] as const).find((v) => v === tp.voice) ?? defaults.tempo.voice,
+      voice: ([0, 1, 2, 3, 4] as const).find((v) => v === tp.voice) ?? defaults.tempo.voice,
       level: clamp(tp.level, 0, 1, defaults.tempo.level),
     },
     tuner: {

@@ -107,6 +107,7 @@ export class Knob {
           h('span', { class: 'knob-stop-mark' }, s.mark()),
         );
         b.setAttribute('aria-label', s.text());
+        b.title = s.text();
         this.stopEls[i] = b;
         place(b, this.angleOf(s.value));
       });
