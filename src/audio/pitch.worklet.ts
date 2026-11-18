@@ -1,7 +1,9 @@
 /// <reference path="./worklet-env.d.ts" />
 // Collects microphone samples in the audio thread and runs the pitch detector
-// every hop. The detector is the Rust/WebAssembly build when the page can hand
-// over a compiled module, else the TypeScript port of the same algorithm.
+// every hop, on the full band and on a band-passed copy (see band.ts). The
+// detector is the Rust/WebAssembly build when the page can hand over a compiled
+// module, else the TypeScript port of the same algorithm.
+import { BandPass, type BandReading } from './band';
 import { Mpm } from './mpm';
 import type { PitchFrame } from './types';
 
@@ -27,42 +29,46 @@ function jsEngine(): Engine {
   };
 }
 
-function wasmEngine(module: WebAssembly.Module): Engine {
+/** Slot 0 analyses the full band, slot 1 the band-passed signal. */
+function wasmEngines(module: WebAssembly.Module): [Engine, Engine] {
   const inst = new WebAssembly.Instance(module, {});
   const x = inst.exports as {
     memory: WebAssembly.Memory;
-    tp_init(w: number): number;
-    tp_detect(sr: number, fmin: number, fmax: number, k: number): number;
-    tp_clarity(): number;
-    tp_rms(): number;
+    tp_init(slot: number, w: number): number;
+    tp_detect(slot: number, sr: number, fmin: number, fmax: number, k: number): number;
+    tp_clarity(slot: number): number;
+    tp_rms(slot: number): number;
   };
-  const ptr = x.tp_init(WINDOW);
-  if (!ptr) throw new Error('tp_init failed');
-  // No allocation happens after init, so this view stays valid.
-  const input = new Float32Array(x.memory.buffer, ptr, WINDOW);
-  return {
-    input,
-    detect: () => x.tp_detect(sampleRate, FMIN, FMAX, K),
-    clarity: () => x.tp_clarity(),
-    rms: () => x.tp_rms(),
-  };
+  // Build both detectors before taking any view: allocating can grow the memory,
+  // which would detach a view made earlier. Nothing allocates after this.
+  const ptrs = [x.tp_init(0, WINDOW), x.tp_init(1, WINDOW)];
+  if (!ptrs[0] || !ptrs[1]) throw new Error('tp_init failed');
+  const engine = (slot: number): Engine => ({
+    input: new Float32Array(x.memory.buffer, ptrs[slot], WINDOW),
+    detect: () => x.tp_detect(slot, sampleRate, FMIN, FMAX, K),
+    clarity: () => x.tp_clarity(slot),
+    rms: () => x.tp_rms(slot),
+  });
+  return [engine(0), engine(1)];
 }
 
 class PitchProcessor extends AudioWorkletProcessor {
   private ring = new Float32Array(WINDOW);
+  private ringHigh = new Float32Array(WINDOW);
+  private band = new BandPass(sampleRate);
   private write = 0;
   private since = 0;
   private filled = 0;
   // ~21 ms at 48 kHz: fast enough for the meter, cheap enough for the audio thread
   private hop = sampleRate > 60000 ? 2048 : 1024;
-  private engine: Engine = jsEngine();
+  private engines: [Engine, Engine] = [jsEngine(), jsEngine()];
 
   constructor() {
     super();
     this.port.onmessage = (e: MessageEvent<{ t: 'wasm'; module: WebAssembly.Module }>) => {
       if (e.data?.t !== 'wasm') return;
       try {
-        this.engine = wasmEngine(e.data.module);
+        this.engines = wasmEngines(e.data.module);
         this.port.postMessage({ t: 'engine', engine: 'wasm' });
       } catch {
         this.port.postMessage({ t: 'engine', engine: 'js' });
@@ -73,9 +79,10 @@ class PitchProcessor extends AudioWorkletProcessor {
   process(inputs: Float32Array[][]): boolean {
     const ch = inputs[0]?.[0];
     if (!ch) return true;
-    const ring = this.ring;
+    const { ring, ringHigh, band } = this;
     for (let i = 0; i < ch.length; i++) {
       ring[this.write] = ch[i];
+      ringHigh[this.write] = band.run(ch[i]);
       this.write = (this.write + 1) % WINDOW;
     }
     this.filled = Math.min(WINDOW, this.filled + ch.length);
@@ -87,18 +94,19 @@ class PitchProcessor extends AudioWorkletProcessor {
     return true;
   }
 
-  private analyse() {
-    const { input } = this.engine;
+  private run(engine: Engine, ring: Float32Array): BandReading {
     // Unroll the ring, oldest sample first.
-    const head = WINDOW - this.write;
-    input.set(this.ring.subarray(this.write), 0);
-    input.set(this.ring.subarray(0, this.write), head);
-    const freq = this.engine.detect();
+    engine.input.set(ring.subarray(this.write), 0);
+    engine.input.set(ring.subarray(0, this.write), WINDOW - this.write);
+    const freq = engine.detect();
+    return { freq, clarity: engine.clarity(), rms: engine.rms() };
+  }
+
+  private analyse() {
     const frame: PitchFrame = {
       t: 'pitch',
-      freq,
-      clarity: this.engine.clarity(),
-      rms: this.engine.rms(),
+      full: this.run(this.engines[0], this.ring),
+      high: this.run(this.engines[1], this.ringHigh),
       time: currentTime,
     };
     this.port.postMessage(frame);

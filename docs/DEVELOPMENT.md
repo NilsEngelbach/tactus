@@ -78,9 +78,11 @@ No UI framework: plain TypeScript building DOM through a small `h()` helper (`sr
 ### Tuner
 
 - `pitch.worklet.ts` fills a 4096-sample ring buffer from the microphone (echo cancellation, noise suppression and auto gain off) and analyses it every 1024 samples (2048 above 60 kHz). That is about 47 readings per second at 48 kHz.
+- **Two bands** (`band.ts`): every window is analysed twice, as is and band-passed (two Butterworth high-pass sections at 150 Hz, one low-pass at 5 kHz, filtered as the samples stream in). Low notes need the full band. A quiet higher note drowns in hum and rumble, which keep the NSDF positive past the note's period, so the full band finds nothing or locks onto the hum. In the band-passed copy the same note reads at about 6 dB lower SNR, at a lower level.
 - The detector is the **McLeod Pitch Method**: the normalised square difference function, with the autocorrelation computed through an FFT. It takes the first key maximum above 0.9 of the highest one, then refines it with parabolic interpolation. Range: 27 Hz to 4.5 kHz.
 - The main thread (`tuner.ts`):
-  - **Gate:** drops frames with clarity below 0.86 or a level below about −52 dBFS.
+  - **Gate:** a band counts when its clarity is at least 0.86 and its level is above about −52 dBFS (full band) or −58 dBFS (band-passed, where hum and rumble no longer add to the level).
+  - **Band choice** (`choosePitch`): the full band wins when the band-passed reading is the same note, or a harmonic of a note below 225 Hz, so low notes read as they did with one band. Otherwise the band-passed reading wins: when the full band found nothing, found something unrelated (mains hum), or, above 225 Hz, a less clear subharmonic. If the band-passed reading takes over while a low note fades, a harmonic of the note on display is folded back onto it.
   - **Settling:** takes the median of the last five readings and only changes note once the pitch is more than 0.62 semitones from the current one.
   - **Display:** smooths the cents and holds the last reading for 1.6 s after the note stops.
   - **In tune:** within ±3 cents.
@@ -114,7 +116,7 @@ npm run build:wasm                         # cargo test, release build, copy to 
 
 The Rust tests (`wasm/pitch/src/lib.rs`) cover a sine at A4, a low E and a low B with harmonics, a weak fundamental, a high note, silence and a detuned tone. Keep `src/audio/mpm.ts` in step with the Rust code.
 
-The module exports a plain C ABI (`tp_init`, `tp_detect`, `tp_clarity`, `tp_rms`) and allocates once in `tp_init`. The worklet's `Float32Array` view on the input buffer therefore stays valid.
+The module exports a plain C ABI (`tp_init`, `tp_detect`, `tp_clarity`, `tp_rms`). Each call takes a slot: 0 holds the full-band detector, 1 the band-passed one. Only `tp_init` allocates, and the worklet initialises both slots before it creates its `Float32Array` views, so memory growth cannot detach them.
 
 ### Offline and updates
 

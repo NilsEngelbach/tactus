@@ -1,3 +1,4 @@
+import { choosePitch, harmonicRatio, type BandReading } from './band';
 import { audio, holdScreen, loadWorklet, setAudioSession } from './engine';
 import { freqToMidi, midiToFreq } from './notes';
 import workletUrl from './pitch.worklet.ts?worker&url';
@@ -17,8 +18,6 @@ export interface Reading {
   live: boolean;
 }
 
-const CLARITY = 0.86;
-const GATE_RMS = 0.0025; // about -52 dBFS
 const HISTORY = 5;
 const HOLD_MS = 1600;
 
@@ -93,7 +92,7 @@ export class Tuner {
       node.port.onmessage = (e: MessageEvent<PitchWorkletEvent>) => {
         const m = e.data;
         if (m.t === 'engine') this.engine = m.engine;
-        else this.frame(m.freq, m.clarity, m.rms);
+        else this.frame(m.full, m.high);
       };
       this.engine = 'js';
       if (module) node.port.postMessage({ t: 'wasm', module });
@@ -144,10 +143,11 @@ export class Tuner {
     for (const fn of this.listeners) fn(r);
   }
 
-  /** One frame from the worklet: gate, median, note hysteresis, smoothing. */
-  private frame(freq: number, clarity: number, rms: number) {
+  /** One frame from the worklet: band choice and gate, median, note hysteresis, smoothing. */
+  private frame(full: BandReading, high: BandReading) {
     const now = performance.now();
-    if (!(freq > 0 && clarity >= CLARITY && rms >= GATE_RMS)) {
+    const pick = choosePitch(full, high);
+    if (!pick) {
       if (this.reading?.live && now - this.lastLive > 120) {
         this.reading = { ...this.reading, live: false };
         this.emit(this.reading);
@@ -163,6 +163,15 @@ export class Tuner {
     }
     clearTimeout(this.holdTimer);
     this.lastLive = now;
+
+    // As a low note fades, the full band loses it first and the high band may
+    // hear only a harmonic: fold that back onto the note on display.
+    let freq = pick.freq;
+    if (pick.band === 'high' && this.reading?.live && this.current !== null) {
+      const shown = midiToFreq(this.current, this.a4);
+      const n = harmonicRatio(freq, shown);
+      if (n > 1 && freq > shown) freq /= n;
+    }
 
     const midi = freqToMidi(freq, this.a4);
     this.history.push(midi);

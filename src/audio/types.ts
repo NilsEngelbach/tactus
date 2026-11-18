@@ -1,3 +1,5 @@
+import type { BandReading } from './band';
+
 /** Accent of one beat: 2 accented, 1 normal, 0 silent (the light still counts it). */
 export type Accent = 0 | 1 | 2;
 
@@ -29,12 +31,11 @@ export interface TickEvent {
   accent: Accent;
 }
 
-/** One analysis frame from the pitch worklet. `freq` is 0 when no pitch was found. */
+/** One analysis frame from the pitch worklet: the same window, full band and band-passed. */
 export interface PitchFrame {
   t: 'pitch';
-  freq: number;
-  clarity: number;
-  rms: number;
+  full: BandReading;
+  high: BandReading;
   time: number;
 }
 

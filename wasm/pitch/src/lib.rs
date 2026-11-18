@@ -210,38 +210,44 @@ impl Detector {
 }
 
 // ── C ABI for the AudioWorklet ──────────────────────────────────────────────
-// WebAssembly here is single threaded; the worklet owns the one detector.
+// WebAssembly here is single threaded; the worklet owns the detectors. Slot 0
+// takes the full band, slot 1 the band-passed signal (the worklet filters it).
 
-static mut DETECTOR: Option<Detector> = None;
+const SLOTS: usize = 2;
+static mut DETECTORS: [Option<Detector>; SLOTS] = [None, None];
 
-fn detector() -> Option<&'static mut Detector> {
+fn detector(slot: u32) -> Option<&'static mut Detector> {
     // SAFETY: wasm32 without threads, and the worklet calls these one at a time.
-    unsafe { (*core::ptr::addr_of_mut!(DETECTOR)).as_mut() }
+    unsafe { (*core::ptr::addr_of_mut!(DETECTORS)).get_mut(slot as usize)?.as_mut() }
 }
 
-/// Builds the detector for `window` samples and returns the input buffer's address.
+/// Builds the detector in `slot` for `window` samples and returns its input buffer's address.
+/// This allocates, which can grow the memory: build every slot before taking views on it.
 #[no_mangle]
-pub extern "C" fn tp_init(window: u32) -> *mut f32 {
+pub extern "C" fn tp_init(slot: u32, window: u32) -> *mut f32 {
+    if slot as usize >= SLOTS {
+        return core::ptr::null_mut();
+    }
     // SAFETY: see `detector`.
     unsafe {
-        *core::ptr::addr_of_mut!(DETECTOR) = Some(Detector::new(window as usize));
+        (*core::ptr::addr_of_mut!(DETECTORS))[slot as usize] = Some(Detector::new(window as usize));
     }
-    detector().map_or(core::ptr::null_mut(), |d| d.input_mut().as_mut_ptr())
+    detector(slot).map_or(core::ptr::null_mut(), |d| d.input_mut().as_mut_ptr())
 }
 
 #[no_mangle]
-pub extern "C" fn tp_detect(sample_rate: f32, fmin: f32, fmax: f32, k: f32) -> f32 {
-    detector().map_or(0.0, |d| d.detect(sample_rate, fmin, fmax, k))
+pub extern "C" fn tp_detect(slot: u32, sample_rate: f32, fmin: f32, fmax: f32, k: f32) -> f32 {
+    detector(slot).map_or(0.0, |d| d.detect(sample_rate, fmin, fmax, k))
 }
 
 #[no_mangle]
-pub extern "C" fn tp_clarity() -> f32 {
-    detector().map_or(0.0, |d| d.clarity())
+pub extern "C" fn tp_clarity(slot: u32) -> f32 {
+    detector(slot).map_or(0.0, |d| d.clarity())
 }
 
 #[no_mangle]
-pub extern "C" fn tp_rms() -> f32 {
-    detector().map_or(0.0, |d| d.rms())
+pub extern "C" fn tp_rms(slot: u32) -> f32 {
+    detector(slot).map_or(0.0, |d| d.rms())
 }
 
 #[cfg(test)]
