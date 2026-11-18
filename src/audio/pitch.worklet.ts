@@ -12,8 +12,14 @@
 // else goes through the long window. At a note's onset, while the long window
 // still holds mostly silence, the short ones may start it; the long window then
 // confirms or corrects that pitch within a few frames.
+// A low note with a weak fundamental (violin G string, cello, bass) can make the
+// long window answer with its octave. Taken up, the short window would then
+// track that octave and never see the fundamental again, so while a band
+// tracks a note, a jump to one of its harmonics is overruled while the tracked
+// period is clearly more periodic than the new one. (Merely as periodic proves
+// nothing: a pure tone repeats at twice its period just as well.)
 // Then the pitch is refined strobe-style from the phase of its harmonics.
-import { BandPass, CLARITY, type BandReading } from './band';
+import { BandPass, CLARITY, harmonicRatio, type BandReading } from './band';
 import { Mpm } from './mpm';
 import type { PitchFrame } from './types';
 
@@ -35,11 +41,22 @@ const FMIN = 27; // just under A0 / low B on a 5-string bass (30.9 Hz)
 const FMAX = 4500;
 const FMAX_REFINE = Math.min(5000, sampleRate * 0.45);
 const K = 0.9;
+/**
+ * The tracked note holds against a jump to its harmonic while its period's
+ * aperiodicity (1 - NSDF peak) is at most this share of the harmonic's. On the
+ * Good-Sounds recordings a weak fundamental (violin G string, bass) scores about
+ * 0.01, cello 0.06; an overblown flute note over the faint resonance of its
+ * fingering's lower octave 0.1 to 0.3, and a pure tone about 1.
+ */
+const OCTAVE_STAY = 0.05;
 
 interface Engine {
   input: Float32Array;
   detect(): number;
   refine(f0: number): number;
+  /** The pitch near `f` in the last detection, 0 when there is none; see `nearHeight`. */
+  near(f: number): number;
+  nearHeight(): number;
   clarity(): number;
   rms(): number;
 }
@@ -50,6 +67,8 @@ function jsEngine(size: number): Engine {
     input: m.input,
     detect: () => m.detect(sampleRate, FMIN, FMAX, K),
     refine: (f0) => m.refine(sampleRate, f0, FMAX_REFINE),
+    near: (f) => m.near(sampleRate, f),
+    nearHeight: () => m.nearHeight,
     clarity: () => m.clarity,
     rms: () => m.rms,
   };
@@ -69,6 +88,8 @@ function wasmEngines(module: WebAssembly.Module): Engines {
     tp_init(slot: number, w: number): number;
     tp_detect(slot: number, sr: number, fmin: number, fmax: number, k: number): number;
     tp_refine(slot: number, sr: number, f0: number, fmax: number): number;
+    tp_near(slot: number, sr: number, f: number): number;
+    tp_near_height(slot: number): number;
     tp_clarity(slot: number): number;
     tp_rms(slot: number): number;
   };
@@ -84,6 +105,8 @@ function wasmEngines(module: WebAssembly.Module): Engines {
         input: new Float32Array(x.memory.buffer, ptrs[band][i], size),
         detect: () => x.tp_detect(s, sampleRate, FMIN, FMAX, K),
         refine: (f0) => x.tp_refine(s, sampleRate, f0, FMAX_REFINE),
+        near: (f) => x.tp_near(s, sampleRate, f),
+        nearHeight: () => x.tp_near_height(s),
         clarity: () => x.tp_clarity(s),
         rms: () => x.tp_rms(s),
       };
@@ -194,13 +217,24 @@ class PitchProcessor extends AudioWorkletProcessor {
       }
     }
     let freq = r.freq;
+    let clarity = r.engine.clarity();
+    if (tracked > 0 && r.clear && freq > 1.5 * tracked && harmonicRatio(freq, tracked) > 1) {
+      // Jumped to a harmonic of the tracked note: stay while that note's period is
+      // clearly the more periodic (only the long window gets here; it holds the period).
+      const low = r.engine.near(tracked);
+      const h = r.engine.nearHeight();
+      if (low > 0 && h >= CLARITY && 1 - h <= OCTAVE_STAY * (1 - clarity)) {
+        freq = low;
+        clarity = h;
+      }
+    }
     if (freq > 0) {
       const fine = r.engine.refine(freq);
       if (fine > 0) freq = fine;
     }
     this.tracked[band] = r.clear ? freq : 0;
     if (!r.clear) this.provisional[band] = 0;
-    return { freq, clarity: r.engine.clarity(), rms: r.engine.rms() };
+    return { freq, clarity, rms: r.engine.rms() };
   }
 
   private analyse() {

@@ -30,6 +30,10 @@ pub struct Detector {
     hann: Vec<f32>,
     clarity: f32,
     rms: f32,
+    /// NSDF lags computed by the last `detect` (0 when it stopped early).
+    max_lag: usize,
+    /// Height of the peak the last `near` found.
+    near_height: f32,
 }
 
 /// Harmonics `refine` measures (fewer when they pass `fmax`).
@@ -65,6 +69,8 @@ impl Detector {
                 .collect(),
             clarity: 0.0,
             rms: 0.0,
+            max_lag: 0,
+            near_height: 0.0,
         }
     }
 
@@ -121,6 +127,7 @@ impl Detector {
         let w = self.w;
         let n = self.n;
         self.clarity = 0.0;
+        self.max_lag = 0;
 
         let mean = self.input.iter().sum::<f32>() / w as f32;
         let mut energy = 0.0f32;
@@ -165,6 +172,7 @@ impl Detector {
             let r = self.re[tau] * inv_n;
             self.nsdf[tau] = if m > 1e-12 { 2.0 * r / m } else { 0.0 };
         }
+        self.max_lag = max_lag;
 
         // Key maxima: the highest point of each positive lobe after the first
         // negative-going zero crossing.
@@ -224,8 +232,54 @@ impl Detector {
         } else {
             (0.0, b)
         };
+        let f = sample_rate / (chosen as f32 + delta);
+        // The lag range runs past the longest period so its lobe can close, which
+        // lets rumble under fmin through: it is no pitch.
+        if f < fmin {
+            return 0.0;
+        }
         self.clarity = peak.min(1.0);
-        sample_rate / (chosen as f32 + delta)
+        f
+    }
+
+    /// The pitch near `f` in the last `detect`: the NSDF maximum within about
+    /// half a semitone of its period, parabolically interpolated. 0 when there is
+    /// no such maximum; its height is then 0 too (see `near_height`). The worklet
+    /// asks this for the note it tracks when `detect` jumped to a harmonic of it.
+    pub fn near(&mut self, sample_rate: f32, f: f32) -> f32 {
+        self.near_height = 0.0;
+        if f <= 0.0 {
+            return 0.0;
+        }
+        let lag = sample_rate / f;
+        let lo = ((lag * 0.97).floor() as usize).max(2);
+        let hi = (lag * 1.03).ceil() as usize;
+        if hi + 1 >= self.max_lag {
+            return 0.0;
+        }
+        let mut best = lo;
+        for t in lo..=hi {
+            if self.nsdf[t] > self.nsdf[best] {
+                best = t;
+            }
+        }
+        let (a, b, c) = (self.nsdf[best - 1], self.nsdf[best], self.nsdf[best + 1]);
+        if b <= 0.0 || a > b || c > b {
+            return 0.0;
+        }
+        let denom = a - 2.0 * b + c;
+        let (delta, peak) = if denom.abs() > 1e-12 {
+            let d = 0.5 * (a - c) / denom;
+            (d, b - 0.25 * (a - c) * d)
+        } else {
+            (0.0, b)
+        };
+        self.near_height = peak.min(1.0);
+        sample_rate / (best as f32 + delta)
+    }
+
+    pub fn near_height(&self) -> f32 {
+        self.near_height
     }
 
     /// Refines `f0`, found by `detect` on the same input, the way a strobe tuner
@@ -333,6 +387,17 @@ pub extern "C" fn tp_detect(slot: u32, sample_rate: f32, fmin: f32, fmax: f32, k
 #[no_mangle]
 pub extern "C" fn tp_refine(slot: u32, sample_rate: f32, f0: f32, fmax: f32) -> f32 {
     detector(slot).map_or(0.0, |d| d.refine(sample_rate, f0, fmax))
+}
+
+/// The pitch near `f` from the last `tp_detect` in this slot; 0 when there is none.
+#[no_mangle]
+pub extern "C" fn tp_near(slot: u32, sample_rate: f32, f: f32) -> f32 {
+    detector(slot).map_or(0.0, |d| d.near(sample_rate, f))
+}
+
+#[no_mangle]
+pub extern "C" fn tp_near_height(slot: u32) -> f32 {
+    detector(slot).map_or(0.0, |d| d.near_height())
 }
 
 #[no_mangle]
@@ -564,6 +629,34 @@ mod tests {
         let f = d.detect(SR, 27.0, 4500.0, 0.9);
         assert!(f > 0.0);
         assert_eq!(d.refine(SR, f, 5000.0), 0.0);
+    }
+
+    #[test]
+    fn rumble_under_fmin_is_no_pitch() {
+        // 23 Hz room rumble: inside the lag range, below fmin.
+        let (f, c) = run(|t| (2.0 * PI * 23.0 * t).sin() * 0.3);
+        assert_eq!(f, 0.0, "got {f}");
+        assert_eq!(c, 0.0);
+    }
+
+    #[test]
+    fn near_finds_a_weak_fundamental() {
+        // Ab3 with a fundamental 28 dB under the 2nd harmonic and weak odd ones,
+        // like a violin's G string: MPM alone answers an octave up.
+        let f0 = 208.0;
+        let mut d = Detector::new(W);
+        for (i, v) in d.input_mut().iter_mut().enumerate() {
+            let w = 2.0 * PI * f0 * i as f64 / SR as f64;
+            *v = (0.04 * w.sin() + (2.0 * w).sin() + 0.1 * (3.0 * w + 1.0).sin() + 0.1 * (4.0 * w).sin()
+                + 0.08 * (5.0 * w + 2.0).sin()) as f32 * 0.2;
+        }
+        let f = d.detect(SR, 27.0, 4500.0, 0.9);
+        assert!(cents(f, 2.0 * f0 as f32).abs() < 5.0, "MPM got {f}");
+        let low = d.near(SR, 207.0);
+        assert!(cents(low, f0 as f32).abs() < 2.0, "near got {low}");
+        assert!(d.near_height() > d.clarity(), "{} vs {}", d.near_height(), d.clarity());
+        // Between the periods of the 2nd harmonic and the fundamental the NSDF has no maximum.
+        assert_eq!(d.near(SR, 290.0), 0.0);
     }
 
     #[test]

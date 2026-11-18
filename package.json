@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "build:wasm": "node tools/build-wasm.mjs",
-    "icons": "node tools/make-icons.mjs"
+    "icons": "node tools/make-icons.mjs",
+    "eval:tuner": "node tools/eval-tuner/run.mjs"
   },
   "devDependencies": {
     "sharp": "^0.35.5",

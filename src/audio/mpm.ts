@@ -5,6 +5,10 @@ export class Mpm {
   readonly input: Float32Array;
   clarity = 0;
   rms = 0;
+  /** Height of the peak the last `near` found. */
+  nearHeight = 0;
+  /** NSDF lags computed by the last `detect` (0 when it stopped early). */
+  private maxLag = 0;
   private readonly n: number;
   private readonly re: Float32Array;
   private readonly im: Float32Array;
@@ -72,6 +76,7 @@ export class Mpm {
   detect(sampleRate: number, fmin: number, fmax: number, k: number): number {
     const { w, n, input, re, im, nsdf } = this;
     this.clarity = 0;
+    this.maxLag = 0;
     let mean = 0;
     for (let i = 0; i < w; i++) mean += input[i];
     mean /= w;
@@ -104,6 +109,7 @@ export class Mpm {
       m -= a * a + b * b;
       nsdf[tau] = m > 1e-12 ? (2 * re[tau]) / n / m : 0;
     }
+    this.maxLag = maxLag;
 
     let tau = 1;
     while (tau < maxLag && nsdf[tau] > 0) tau++;
@@ -135,8 +141,43 @@ export class Mpm {
       delta = (0.5 * (a - c)) / denom;
       peak = b - 0.25 * (a - c) * delta;
     }
+    const f = sampleRate / (chosen + delta);
+    // The lag range runs past the longest period so its lobe can close, which
+    // lets rumble under fmin through: it is no pitch.
+    if (f < fmin) return 0;
     this.clarity = Math.min(1, peak);
-    return sampleRate / (chosen + delta);
+    return f;
+  }
+
+  /**
+   * The pitch near `f` in the last `detect`: the NSDF maximum within about half
+   * a semitone of its period, parabolically interpolated; 0 when there is none
+   * (`nearHeight` is then 0 too). The worklet asks this for the note it tracks
+   * when `detect` jumped to a harmonic of it.
+   */
+  near(sampleRate: number, f: number): number {
+    const { nsdf } = this;
+    this.nearHeight = 0;
+    if (f <= 0) return 0;
+    const lag = sampleRate / f;
+    const lo = Math.max(2, Math.floor(lag * 0.97));
+    const hi = Math.ceil(lag * 1.03);
+    if (hi + 1 >= this.maxLag) return 0;
+    let best = lo;
+    for (let t = lo; t <= hi; t++) if (nsdf[t] > nsdf[best]) best = t;
+    const a = nsdf[best - 1];
+    const b = nsdf[best];
+    const c = nsdf[best + 1];
+    if (b <= 0 || a > b || c > b) return 0;
+    const denom = a - 2 * b + c;
+    let delta = 0;
+    let peak = b;
+    if (Math.abs(denom) > 1e-12) {
+      delta = (0.5 * (a - c)) / denom;
+      peak = b - 0.25 * (a - c) * delta;
+    }
+    this.nearHeight = Math.min(1, peak);
+    return sampleRate / (best + delta);
   }
 
   /**
