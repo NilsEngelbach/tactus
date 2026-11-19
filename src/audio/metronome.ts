@@ -27,6 +27,11 @@ export class Metronome {
     this.stateListeners.add(fn);
   }
 
+  /** The AudioContext time now reaching the speaker; null while stopped. */
+  now(): number | null {
+    return this.running && this.ctx ? audibleTime(this.ctx) : null;
+  }
+
   configure(cfg: TempoConfig) {
     this.cfg = cfg;
     this.send({ t: 'config', cfg });

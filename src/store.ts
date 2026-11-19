@@ -4,9 +4,15 @@ import type { Accent, TempoConfig } from './audio/types';
 import type { TranspositionId } from './audio/notes';
 import type { Lang } from './i18n';
 
+/** The metronome config plus what only the window uses. */
+export interface TempoSettings extends TempoConfig {
+  /** Show the swinging pendulum in the window. */
+  pendulum: boolean;
+}
+
 export interface Settings {
   lang: Lang | null;
-  tempo: TempoConfig;
+  tempo: TempoSettings;
   /** refNote: the reference tone as written pitch (MIDI), C1 to C6. */
   tuner: { a4: number; transpose: TranspositionId; refNote: number; view: 'meter' | 'trace' };
 }
@@ -15,7 +21,7 @@ const KEY = 'tactus:v1';
 
 export const defaults: Settings = {
   lang: null,
-  tempo: { bpm: 96, beats: 4, subdiv: 1, accents: [2, 1, 1, 1], voice: 1, level: 0.8 },
+  tempo: { bpm: 96, beats: 4, subdiv: 1, shuffle: false, accents: [2, 1, 1, 1], voice: 1, level: 0.8, pendulum: false },
   tuner: { a4: 440, transpose: 'C', refNote: 69, view: 'meter' },
 };
 
@@ -33,8 +39,9 @@ export function load(): Settings {
   } catch {
     /* no storage */
   }
-  const tp: Partial<TempoConfig> = raw.tempo ?? {};
+  const tp: Partial<TempoSettings> = raw.tempo ?? {};
   const beats = Math.round(clamp(tp.beats, 1, 12, defaults.tempo.beats));
+  const subdiv = ([1, 2, 3, 4] as const).find((s) => s === tp.subdiv) ?? 1;
   const acc = Array.isArray(tp.accents)
     ? tp.accents.map((a) => (a === 0 || a === 1 || a === 2 ? a : 1))
     : defaults.tempo.accents;
@@ -44,10 +51,12 @@ export function load(): Settings {
     tempo: {
       bpm: Math.round(clamp(tp.bpm, 30, 300, defaults.tempo.bpm)),
       beats,
-      subdiv: ([1, 2, 3, 4] as const).find((s) => s === tp.subdiv) ?? 1,
+      subdiv,
+      shuffle: tp.shuffle === true && (subdiv === 2 || subdiv === 3),
       accents: accentsFor(beats, acc as Accent[]),
       voice: ([0, 1, 2, 3, 4] as const).find((v) => v === tp.voice) ?? defaults.tempo.voice,
       level: clamp(tp.level, 0, 1, defaults.tempo.level),
+      pendulum: tp.pendulum === true,
     },
     tuner: {
       a4: Math.round(clamp(tn.a4, 415, 466, 440)),

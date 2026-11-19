@@ -8,18 +8,35 @@ const wrap = (body: string, vb = '0 0 24 24') =>
 const head = (cx: number, cy: number) =>
   `<ellipse cx="${cx}" cy="${cy}" rx="3.3" ry="2.4" transform="rotate(-22 ${cx} ${cy})"/>`;
 const stem = (x: number, top: number, bottom: number) => `<rect x="${x}" y="${top}" width="1.4" height="${bottom - top}"/>`;
+/** A beamed triplet group with a "3": the outer notes, and the middle given. */
+const triplet = (middle: string) =>
+  head(4.2, 19) + stem(6.1, 7, 18.5) + middle + head(18.2, 19) + stem(20.1, 7, 18.5) +
+  '<rect x="6.1" y="7" width="15.4" height="2.6"/><text x="13.8" y="5.6" font-size="7" font-weight="800" text-anchor="middle" font-family="inherit">3</text>';
 
-export const subdivIcon = [
+/** The rhythms of the Subdiv knob, in its order. */
+export const rhythmIcon = [
   // quarter
   () => svg(wrap(head(10.5, 18.5) + stem(12.6, 3, 18))),
   // two eighths
   () => svg(wrap(head(6, 18.5) + stem(8.1, 5, 18) + head(16, 18.5) + stem(18.1, 5, 18) + '<rect x="8.1" y="4" width="11.4" height="2.8"/>')),
-  // triplet
+  // dotted shuffle: dotted eighth and sixteenth
   () =>
     svg(
       wrap(
-        head(4.2, 19) + stem(6.1, 7, 18.5) + head(11.2, 19) + stem(13.1, 7, 18.5) + head(18.2, 19) + stem(20.1, 7, 18.5) +
-          '<rect x="6.1" y="7" width="15.4" height="2.6"/><text x="13.8" y="5.6" font-size="7" font-weight="800" text-anchor="middle" font-family="inherit">3</text>',
+        head(5, 18.5) + stem(7.1, 5, 18) + '<circle cx="10.6" cy="17.4" r="1.35"/>' + head(16, 18.5) + stem(18.1, 5, 18) +
+          '<rect x="7.1" y="4" width="12.4" height="2.8"/><rect x="13.6" y="8.2" width="5.9" height="2.4"/>',
+      ),
+    ),
+  // triplet
+  () => svg(wrap(triplet(head(11.2, 19) + stem(13.1, 7, 18.5)))),
+  // triplet shuffle: the middle triplet is an eighth rest
+  () =>
+    svg(
+      wrap(
+        triplet(
+          '<circle cx="11.6" cy="13.6" r="1.6"/>' +
+            '<path d="M12 15.1c1.2.2 2.2-.3 2.9-1.4l.9.3-3.3 7.6h-1.3l2.5-5.8c-.5.2-1.1.2-1.7.1z"/>',
+        ),
       ),
     ),
   // four sixteenths
@@ -27,7 +44,7 @@ export const subdivIcon = [
     svg(
       wrap(
         [2.8, 8.4, 14, 19.6].map((x) => head(x, 19.5) + stem(x + 1.9, 5, 19)).join('') +
-          '<rect x="4.7" y="4" width="16.3" height="2.4"/><rect x="4.7" y="8" width="16.3" height="2.4"/>',
+          '<rect x="4.7" y="4" width="18.2" height="2.4"/><rect x="4.7" y="8" width="18.2" height="2.4"/>',
       ),
     ),
 ];

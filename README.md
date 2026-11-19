@@ -17,6 +17,21 @@
 
 <sub>Screenshots of the real app; the tuner was fed test tones.</sub>
 
+## Two ways to watch
+
+Both displays have a second view, switched on in the top right corner of the glass.
+
+<table>
+  <tr>
+    <td width="50%" align="center"><img src="docs/screenshots/pendulum.gif" width="340" alt="Tempo pedal in pendulum view at 80 BPM: an arm swings across the display, its weight lights red on the downbeat and amber on the other beats"></td>
+    <td width="50%" align="center"><img src="docs/screenshots/trace.gif" width="340" alt="Tuner in trace view: a pitch line scrolls under the note name; a G scoops up from flat and settles, a D sags flat with a median of minus 14 cents, an A wobbles with vibrato"></td>
+  </tr>
+  <tr>
+    <td><b>Pendulum.</b> Like a clockwork metronome, but timed from the audio clock: the arm reaches the end of its swing exactly on the click, and its weight lights up on each beat (red on an accent). Easy to follow from the corner of your eye. The weight rides high for slow tempos and low for fast ones.</td>
+    <td><b>Trace.</b> The last five seconds of pitch as a line, so you can see how a note starts and settles: a scoop into the attack, a long tone that sags, a wide vibrato. Each finished note gets its median (Ø), green when it was in tune.</td>
+  </tr>
+</table>
+
 ## Install it
 
 Tactus is a web app you can install, so it sits on your home screen or in your dock and opens in its own window, without browser bars.
@@ -27,7 +42,7 @@ Tactus is a web app you can install, so it sits on your home screen or in your d
 | **Android** (Chrome) | Menu ⋮ → **Install app** (or the install banner) |
 | **Desktop** (Chrome, Edge) | The **Install** plate in the Tactus header, or the install icon in the address bar |
 
-Settings (tempo, beats, accents, A4, transposition, language) are kept on the device.
+Settings (tempo, beats, accents, rhythm, A4, transposition, views, language) are kept on the device.
 
 ## Works offline
 
@@ -41,6 +56,8 @@ When a new version is published, it downloads quietly in the background and an a
 - 30–300 BPM, with the Italian tempo term (Andante, Allegro …) in the display
 - 1–12 beats per bar; each beat accented, normal or silent
 - Quarter, eighth, triplet and sixteenth subdivisions
+- **Shuffle**, two kinds: dotted (dotted eighth and sixteenth, 3 : 1) and triplet (the middle triplet silent, 2 : 1)
+- **Pendulum view**: an arm that swings to the end of its travel on every beat
 - Four sounds (click, wood, beep, claves) and a level knob
 - A silent, light-only mode: the display lights up on each beat
 - Tap tempo; or type a tempo: tap the number, double-tap the knob, or type digits on a keyboard
@@ -52,6 +69,7 @@ When a new version is published, it downloads quietly in the background and an a
 - Transposition for instruments in B♭, E♭ and F
 - Reference tone from C1 to C6
 - Readable from the music stand: big note, arrows and a light bar that do not rely on colour alone
+- **Trace view**: the pitch of the last few seconds as a line, with each note's median
 
 **Everywhere**
 - English and German, following the device (switch at the top right); German uses German note names (Cis, Es, B, H)

@@ -99,7 +99,7 @@ function buildSounds(sr: number): Float32Array[][] {
 const KIND_GAIN: Record<Kind, number> = { 0: 1, 1: 0.72, 2: 0.42 };
 
 class MetronomeProcessor extends AudioWorkletProcessor {
-  private cfg: TempoConfig = { bpm: 120, beats: 4, subdiv: 1, accents: [2, 1, 1, 1], voice: 0, level: 0.8 };
+  private cfg: TempoConfig = { bpm: 120, beats: 4, subdiv: 1, shuffle: false, accents: [2, 1, 1, 1], voice: 0, level: 0.8 };
   private sounds = buildSounds(sampleRate);
   private running = false;
   private nextFrame = 0; // fractional, so long runs never drift
@@ -111,11 +111,14 @@ class MetronomeProcessor extends AudioWorkletProcessor {
     this.port.onmessage = (e: MessageEvent<MetronomeMessage>) => {
       const m = e.data;
       if (m.t === 'config') {
-        const ticksPerBar = m.cfg.beats * m.cfg.subdiv;
-        // Keep the current beat when the bar or subdivision changes.
+        // The next click keeps its place in the bar (a level or tempo change
+        // mid-beat must not restart the beat). With another subdivision it
+        // becomes the first new click at or after that place in the beat.
+        const { subdiv, beats } = m.cfg;
         const beat = Math.floor(this.tick / this.cfg.subdiv);
+        const sub = Math.ceil(((this.tick % this.cfg.subdiv) / this.cfg.subdiv) * subdiv);
         this.cfg = m.cfg;
-        this.tick = (beat * m.cfg.subdiv) % ticksPerBar;
+        this.tick = (beat * subdiv + sub) % (beats * subdiv);
       } else if (m.t === 'start') {
         this.running = true;
         this.tick = 0;
@@ -135,8 +138,13 @@ class MetronomeProcessor extends AudioWorkletProcessor {
     if (this.running) {
       while (this.nextFrame < end) {
         const offset = Math.max(0, Math.round(this.nextFrame - currentFrame));
+        const { bpm, subdiv, shuffle } = this.cfg;
+        const sub = this.tick % subdiv;
         this.trigger(offset);
-        this.nextFrame += (sampleRate * 60) / this.cfg.bpm / this.cfg.subdiv;
+        // Dotted shuffle: the beat splits 3 : 1. (The triplet shuffle keeps the
+        // triplet grid and only silences the middle triplet, in trigger.)
+        const share = shuffle && subdiv === 2 ? (sub === 0 ? 3 / 4 : 1 / 4) : 1 / subdiv;
+        this.nextFrame += ((sampleRate * 60) / bpm) * share;
       }
     }
 
@@ -155,9 +163,14 @@ class MetronomeProcessor extends AudioWorkletProcessor {
   }
 
   private trigger(offset: number) {
-    const { subdiv, accents, voice } = this.cfg;
+    const { subdiv, accents, voice, shuffle } = this.cfg;
     const beat = Math.floor(this.tick / subdiv);
     const sub = this.tick % subdiv;
+    if (shuffle && subdiv === 3 && sub === 1) {
+      // Triplet shuffle: the middle triplet is a rest, neither heard nor shown.
+      this.tick = (this.tick + 1) % (this.cfg.beats * subdiv);
+      return;
+    }
     const accent: Accent = accents[beat] ?? 1;
     const kind: Kind = sub > 0 ? 2 : accent === 2 ? 0 : 1;
     if (accent !== 0 && voice !== SILENT) {

@@ -3,13 +3,14 @@ import { Metronome, TapTempo } from '../audio/metronome';
 import { tempoTerm } from '../audio/notes';
 import type { Accent, TempoConfig } from '../audio/types';
 import { onLang, t } from '../i18n';
-import { accentsFor } from '../store';
+import { accentsFor, type TempoSettings } from '../store';
 import { h } from './dom';
 import { valueEntry } from './entry';
-import { subdivIcon, voiceIcon, warningIcon } from './icons';
+import { rhythmIcon, voiceIcon, warningIcon } from './icons';
 import { Knob } from './knob';
 import { pedalShell } from './pedal';
 import { Footswitch, flash, led } from './switch';
+import { TempoPendulum } from './tempo-pendulum';
 
 export interface TempoPedal {
   el: HTMLElement;
@@ -28,12 +29,24 @@ const SAFE_FLASH_BPM = 180;
 /** With Reduce Motion on, the display does not flash above SAFE_FLASH_BPM. */
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
-export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => void): TempoPedal {
-  let cfg: TempoConfig = { ...initial, accents: [...initial.accents] };
+/** The Subdiv knob's stops, in order: each shuffle follows its plain rhythm. */
+const RHYTHMS: { subdiv: TempoConfig['subdiv']; shuffle: boolean }[] = [
+  { subdiv: 1, shuffle: false },
+  { subdiv: 2, shuffle: false },
+  { subdiv: 2, shuffle: true }, // dotted shuffle
+  { subdiv: 3, shuffle: false },
+  { subdiv: 3, shuffle: true }, // triplet shuffle
+  { subdiv: 4, shuffle: false },
+];
+const rhythmOf = (c: TempoConfig) =>
+  RHYTHMS.findIndex((r) => r.subdiv === c.subdiv && r.shuffle === (c.shuffle && (c.subdiv === 2 || c.subdiv === 3)));
+
+export function tempoPedal(initial: TempoSettings, persist: (c: TempoSettings) => void): TempoPedal {
+  let cfg: TempoSettings = { ...initial, accents: [...initial.accents] };
   const metronome = new Metronome(cfg);
   const tapper = new TapTempo();
 
-  const update = (patch: Partial<TempoConfig>) => {
+  const update = (patch: Partial<TempoSettings>) => {
     cfg = { ...cfg, ...patch };
     if (patch.beats !== undefined) cfg.accents = accentsFor(cfg.beats, cfg.accents);
     metronome.configure(cfg);
@@ -62,6 +75,20 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
   const hint = h('p', { class: 'window-hint' });
   const live = h('p', { class: 'sr-only', 'aria-live': 'polite' });
 
+  // Pendulum view: an arm that swings to each beat, between tempo and lights.
+  const pendulum = new TempoPendulum(
+    () => metronome.now(),
+    () => 60 / cfg.bpm,
+  );
+  const pendulumText = h('span', {});
+  const pendulumButton = h(
+    'button',
+    { type: 'button', class: 'window-toggle silk-window' },
+    h('span', { class: 'window-toggle-led' }),
+    pendulumText,
+  );
+  pendulumButton.addEventListener('click', () => update({ pendulum: !cfg.pendulum }));
+
   let beatEls: HTMLButtonElement[] = [];
   const buildBeats = () => {
     beatRow.replaceChildren();
@@ -89,8 +116,15 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
   const window_ = h(
     'div',
     { class: 'window tempo-window' },
-    h('div', { class: 'window-top' }, term, h('span', { class: 'window-top-right' }, meterText, subdivGlyph)),
+    h(
+      'div',
+      { class: 'window-top tempo-top' },
+      h('span', { class: 'tempo-rhythm' }, meterText, subdivGlyph),
+      term,
+      pendulumButton,
+    ),
     h('div', { class: 'window-main' }, bpmButton, h('span', { 'aria-hidden': 'true' }, bpmUnit)),
+    pendulum.el,
     beatRow,
     hint,
     live,
@@ -135,13 +169,15 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     size: 'small',
     label: () => t.subdiv,
     ariaLabel: () => t.subdiv,
-    min: 1,
-    max: 4,
+    min: 0,
+    max: RHYTHMS.length - 1,
     step: 1,
-    value: cfg.subdiv,
-    stops: [1, 2, 3, 4].map((v) => ({ value: v, mark: () => subdivIcon[v - 1](), text: () => t.subdivNames[v - 1] })),
-    valueText: (v) => t.subdivNames[v - 1],
-    onInput: (v) => update({ subdiv: v as TempoConfig['subdiv'] }),
+    // narrower than the 300° six stops would get by default: room at the bottom
+    sweep: 250,
+    value: rhythmOf(cfg),
+    stops: RHYTHMS.map((_, i) => ({ value: i, mark: () => rhythmIcon[i](), text: () => t.subdivNames[i] })),
+    valueText: (v) => t.subdivNames[v],
+    onInput: (v) => update(RHYTHMS[v]),
   });
   const voiceKnob = new Knob({
     kind: 'chicken',
@@ -231,6 +267,7 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
       flash(displayFlash, ev.accent === 2 ? 'is-flash-accent' : 'is-flash');
     }
     if (ev.sub === 0) {
+      pendulum.beat(ev.time, ev.accent);
       beatEls.forEach((b) => b.classList.remove('is-current'));
       el.classList.add('is-current');
       flash(l, 'is-flash');
@@ -241,6 +278,7 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     }
   });
   metronome.onState((running) => {
+    pendulum.setRunning(running);
     onLed.classList.toggle('is-on', running);
     onSwitch.setPressed(running);
     shell.el.classList.toggle('is-running', running);
@@ -276,8 +314,15 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     bpmUnit.textContent = t.bpm;
     term.textContent = tempoTerm(cfg.bpm);
     meterText.textContent = `${t.beats} ${cfg.beats}`;
-    subdivGlyph.replaceChildren(subdivIcon[cfg.subdiv - 1]());
-    subdivGlyph.setAttribute('title', t.subdivNames[cfg.subdiv - 1]);
+    const rhythm = rhythmOf(cfg);
+    subdivGlyph.replaceChildren(rhythmIcon[rhythm]());
+    subdivGlyph.setAttribute('title', t.subdivNames[rhythm]);
+    window_.classList.toggle('is-pendulum', cfg.pendulum);
+    pendulumText.textContent = t.pendulum;
+    pendulumButton.setAttribute('aria-pressed', String(cfg.pendulum));
+    pendulumButton.setAttribute('aria-label', t.pendulumLabel);
+    pendulum.show(cfg.pendulum);
+    pendulum.setTempo(cfg.bpm);
     // More than 3 flashes a second is the photosensitive-epilepsy limit
     // (WCAG 2.3.1); the light-only voice flashes the whole display once a beat.
     // With Reduce Motion on, the flash is off up there instead, and the line says so.
@@ -294,7 +339,7 @@ export function tempoPedal(initial: TempoConfig, persist: (c: TempoConfig) => vo
     });
     tempoKnob.set(cfg.bpm);
     beatsKnob.set(cfg.beats);
-    subdivKnob.set(cfg.subdiv);
+    subdivKnob.set(rhythm);
     voiceKnob.set(cfg.voice);
     levelKnob.set(cfg.level);
   }

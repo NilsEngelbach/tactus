@@ -9,6 +9,12 @@ export interface TempoConfig {
   beats: number;
   /** Clicks per beat: 1 quarter, 2 eighths, 3 triplets, 4 sixteenths. */
   subdiv: 1 | 2 | 3 | 4;
+  /**
+   * Shuffle feel. With eighths: dotted, the beat splits 3 : 1 (dotted eighth,
+   * sixteenth). With triplets: the middle triplet is silent (2 : 1).
+   * No effect with other subdivisions.
+   */
+  shuffle: boolean;
   /** One entry per beat. */
   accents: Accent[];
   /** 0 click, 1 wood, 2 beep, 3 claves, 4 light only (no sound). */
